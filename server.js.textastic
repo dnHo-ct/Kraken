@@ -1,37 +1,6 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
-
-const app = express();
-const upload = multer({ dest: "uploads/" });
-
-// Servir le frontend
-app.use(express.static("public"));
-
-// Route upload des graphiques
-app.post("/upload-charts", upload.array("charts"), (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.json({ message: "Aucun fichier reçu." });
-  }
-
-  console.log(
-    "Graphiques reçus :",
-    req.files.map(f => f.originalname)
-  );
-
-  res.json({
-    message: `${req.files.length} graphique(s) reçu(s) avec succès.`
-  });
-});
-
-// Lancement serveur
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log("Serveur SENTINEL actif sur le port", PORT);
-});
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
 
 const app = express();
@@ -39,73 +8,110 @@ const upload = multer({ dest: "uploads/" });
 
 app.use(express.static("public"));
 
-// --- Simulation d'analyse complète SENTINEL V2 ---
-async function analyseGraphique(filePath, fileName) {
-  // Ici, tu peux brancher un vrai module IA pour analyser :
-  // OB / Fibo / Volume Profile / RSI / MACD / CVD / OBPI / figures chartistes
-  // Pour l'instant, on simule les résultats complets.
+/**
+ * MODULE DE NORMALISATION (NOUVEAU)
+ * Force les prix à 3 décimales pour le NATGAS
+ */
+function normalizePrice(price) {
+  return parseFloat(parseFloat(price).toFixed(3));
+}
 
+/**
+ * SIMULATION D'ANALYSE SENTINEL V3
+ * Intègre maintenant la détection de la volatilité et des structures
+ */
+async function analyseGraphique(filePath, fileName) {
+  // Ici, on simule une extraction OCR/IA plus précise
+  // On utilise des valeurs réelles proches du cours actuel (ex: 2.914)
   return {
     file: fileName,
-    orderBlock: "OB Haut",
-    fiboZone: "61.8% - 79%",
-    volumeProfile: { VAL: 4200, POC: 4300, VAH: 4400 },
-    rsi: { value: 55, divergence: "Aucune" },
-    macd: { signal: "Achat léger", cross: true },
+    currentPrice: 2.914,
+    orderBlock: { level: 2.888, type: "Bullish_Neckline" },
+    fiboZone: { ote_min: 2.870, ote_max: 2.884 },
+    volumeProfile: { VAL: 2.830, POC: 2.906, VAH: 2.980 },
+    atr: 0.015, // Volatilité 15 min (15 pips)
     cvd: { pression: "Achat dominant", delta: 1500 },
-    obpi: { niveau: "Haute pression acheteurs", zone: "Grille OTE" },
-    microStructure: "Engulfing",
-    algorithmicZone: "OTE validée"
+    microStructure: "Engulfing Haussier",
   };
 }
 
-// --- Route upload et analyse exhaustive ---
 app.post("/upload-charts", upload.array("charts"), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.json({ message: "Aucun fichier reçu." });
   }
 
-  console.log("Graphiques reçus :", req.files.map(f => f.originalname));
-
   const results = [];
 
   for (const file of req.files) {
     const filePath = path.join(__dirname, file.path);
-
-    // Analyse complète
     const aiData = await analyseGraphique(filePath, file.originalname);
 
-    // Synthèse SENTINEL : calcul du verdict final
-    let verdict;
-    if (aiData.macd.signal.includes("Achat") && aiData.rsi.value < 70) verdict = "Achat";
-    else if (aiData.macd.signal.includes("Vente") && aiData.rsi.value > 30) verdict = "Vente";
-    else verdict = "Neutre";
+    // --- LOGIQUE DE DÉCISION V3 (SÉCURISÉE) ---
 
-    // Calcul précis SL / TP basé sur OB, OTE, Volume Profile
-    const sl = aiData.orderBlock === "OB Haut" ? aiData.volumeProfile.VAL - 10 : aiData.volumeProfile.VAL + 10;
-    const tp1 = aiData.volumeProfile.POC;
-    const tp2 = aiData.volumeProfile.VAH;
+    // 1. Détermination du Biais
+    let bias = "NEUTRE";
+    if (aiData.microStructure.includes("Haussier") && aiData.currentPrice > aiData.orderBlock.level) {
+      bias = "BULLISH";
+    }
+
+    // 2. Calcul du Stop Loss Structurel (Anti-Mèche)
+    // Règle : Sous le dernier support + marge de volatilité (ATR)
+    let sl = normalizePrice(aiData.orderBlock.level - (aiData.atr * 1.5));
+
+    // 3. Calcul des Take Profits cohérents
+    let tp1 = normalizePrice(aiData.volumeProfile.POC);
+    let tp2 = normalizePrice(aiData.volumeProfile.VAH);
+
+    // --- FILTRE DE COHÉRENCE (SANITY CHECK) ---
+    let setupValid = true;
+    let errorLog = [];
+
+    // Erreur de sens : TP inférieur à l'entrée en Long
+    if (bias === "BULLISH" && tp1 <= aiData.currentPrice) {
+      setupValid = false;
+      errorLog.push("Incohérence : TP1 inférieur au prix actuel");
+      // Correction automatique pour l'affichage
+      tp1 = normalizePrice(aiData.currentPrice + (aiData.atr * 3));
+    }
+
+    // Calcul du Risk/Reward réel
+    const risk = Math.abs(aiData.currentPrice - sl);
+    const reward = Math.abs(tp2 - aiData.currentPrice);
+    const rr = (reward / risk).toFixed(2);
+
+    // Blocage des ratios délirants
+    if (rr > 20 || rr < 0.5) {
+      setupValid = false;
+      errorLog.push(`Ratio R/R suspect : 1:${rr}`);
+    }
 
     results.push({
-      ...aiData,
-      verdict,
-      SL: sl,
-      TP1: tp1,
-      TP2: tp2
+      bias: bias,
+      setup_valid: setupValid,
+      errors: errorLog,
+      entry_zone: [aiData.fiboZone.ote_min, aiData.fiboZone.ote_max],
+      current_price: aiData.currentPrice,
+      stop_loss: sl,
+      take_profit: [tp1, tp2],
+      risk_reward: `1:${rr}`,
+      confidence_score: setupValid ? 100 : 50,
+      justification: {
+        structure: aiData.microStructure,
+        cvd: aiData.cvd.pression,
+        logic: setupValid ? "Alignement flux et structure" : "Divergence mathématique détectée"
+      }
     });
 
-    // Supprime le fichier après traitement
-    fs.unlinkSync(filePath);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
 
   res.json({
-    message: `${req.files.length} graphique(s) analysé(s) avec verdict complet.`,
+    message: "Analyse SENTINEL V3 terminée",
     data: results
   });
 });
 
-// --- Serveur
 const PORT = 5000;
 app.listen(PORT, () => {
-  console.log("Serveur SENTINEL FULL actif sur le port", PORT);
+  console.log("🚀 Moteur SENTINEL V3 (Anti-Manipulation) actif sur le port", PORT);
 });
