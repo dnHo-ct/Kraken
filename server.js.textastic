@@ -1,0 +1,22 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
+app.use(bodyParser.json());
+
+app.post('/analyze', (req, res) => {
+    const data = req.body;
+    // Ici, tu peux intégrer ta logique pour appeler l'API de ChatGPT avec le prompt
+    // Par exemple, tu formates data, tu fais la requête API, et tu renvoies la réponse
+
+    // Simulation de réponse pour l’exemple :
+    res.json({
+        status: 'success',
+        analysis: 'Résultat de ton analyse ici...'
+    });
+});
+
+const port = 3000;
+app.listen(port, () => {
+    console.log(`Serveur lancé sur http://localhost:${port}`);
+});
