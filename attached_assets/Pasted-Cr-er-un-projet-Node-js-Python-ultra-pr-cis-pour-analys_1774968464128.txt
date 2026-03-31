@@ -1,0 +1,109 @@
+Créer un projet Node.js + Python ultra-précis pour analyser des graphiques de trading.
+
+Objectif :
+1. Upload multi-fichiers depuis le frontend.
+2. Pour chaque graphique, extraire les prix via OCR.
+3. Calculer Order Blocks, zones Fibo, Volume Profile, CVD, OBPI, micro-structure.
+4. Générer JSON individuel pour chaque graphique dans results/.
+5. Générer JSON global consolidé dans output/global.json.
+6. Servir un frontend simple pour uploader les images et afficher le JSON global.
+7. Créer automatiquement les dossiers : uploads/, results/, output/, public/.
+8. Installer les dépendances : express, multer (Node.js), pytesseract, pillow (Python).
+
+Code Node.js (server.js) :
+--------------------------------
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const { spawn } = require("child_process");
+
+const app = express();
+const upload = multer({ dest: "uploads/" });
+app.use(express.static("public"));
+
+app.post("/upload-charts", upload.array("charts"), async (req,res)=>{
+  if(!req.files || req.files.length===0) return res.json({message:"Aucun fichier reçu"});
+  fs.mkdirSync("results",{recursive:true});
+  fs.mkdirSync("output",{recursive:true});
+  const files = req.files.map(f=>f.path);
+  const py = spawn("python3",["moteur_sentinel.py", ...files]);
+  py.stdout.on("data", data=>console.log(data.toString()));
+  py.stderr.on("data", err=>console.error(err.toString()));
+  py.on("close", code=>{
+    const globalJSON = fs.existsSync("output/global.json")?"output/global.json":null;
+    res.json({message:`${files.length} graphique(s) analysé(s)`, globalJSON});
+  });
+});
+
+app.get("/", (req,res)=>{
+  res.send(`
+    <h2>Upload Graphiques Trading</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="charts" multiple />
+      <button type="submit">Envoyer</button>
+    </form>
+    <pre id="result"></pre>
+    <script>
+      const form = document.getElementById('uploadForm');
+      const resultEl = document.getElementById('result');
+      form.addEventListener('submit', async e=>{
+        e.preventDefault();
+        const data = new FormData(form);
+        const res = await fetch('/upload-charts',{method:'POST',body:data});
+        const json = await res.json();
+        resultEl.textContent = JSON.stringify(json,null,2);
+      });
+    </script>
+  `);
+});
+
+const PORT=5000;
+app.listen(PORT,()=>console.log("Serveur lancé sur le port",PORT));
+
+Code Python ultra-précis (moteur_sentinel.py) :
+--------------------------------
+import sys, json, os
+from pathlib import Path
+import pytesseract
+from PIL import Image
+
+os.makedirs("results",exist_ok=True)
+os.makedirs("output",exist_ok=True)
+global_results=[]
+
+def analyse_graphique(file_path):
+    img=Image.open(file_path)
+    text=pytesseract.image_to_string(img)
+    lines=[t.replace("$","").replace(",","").strip() for t in text.split("\n")]
+    prices=[float(t) for t in lines if t.replace(".","",1).isdigit()]
+    val=min(prices) if prices else None
+    vah=max(prices) if prices else None
+    poc=prices[len(prices)//2] if prices else None
+    result={
+        "fichier":Path(file_path).name,
+        "prix_detectes":prices,
+        "order_blocks_detectes":[{"niveau":p,"importance":"fort"} for p in prices[:3]],
+        "zones_fibo":[{"niveau":p,"OTE_min":61.8,"OTE_max":79} for p in prices[:3]],
+        "volume_profile":{"VAL":val,"POC":poc,"VAH":vah},
+        "CVD":{"delta":1500,"pression":"achat dominant"},
+        "OBPI":{"niveau_algo":"entrée potentielle sur 61.8%-79%"},
+        "micro_structure":"Engulfing haussier",
+        "synthese":{"verdict":"Achat","stop_loss":val-100 if val else None,"take_profit":[vah+100] if vah else None}
+    }
+    with open(f"results/{Path(file_path).name}.json","w") as f: json.dump(result,f,indent=2)
+    return result
+
+for file_path in sys.argv[1:]:
+    data=analyse_graphique(file_path)
+    global_results.append(data)
+
+with open("output/global.json","w") as f: json.dump(global_results,f,indent=2)
+print(f"Analyse terminée pour {len(global_results)} graphique(s)")
+
+Fin du copier-coller. LIA doit :
+1. Créer les fichiers server.js et moteur_sentinel.py
+2. Créer les dossiers uploads/, results/, output/, public/
+3. Installer express, multer, pytesseract, pillow
+4. Configurer le frontend dans public/ pour upload + affichage JSON
+5. Lancer le serveur Node.js prêt à tester.

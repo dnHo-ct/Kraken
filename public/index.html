@@ -13,12 +13,8 @@
             margin: 0;
             padding: 20px;
         }
-        h1 {
-            color: #38bdf8;
-        }
-        h2, h3 {
-            color: #94a3b8;
-        }
+        h1 { color: #38bdf8; }
+        h2, h3 { color: #94a3b8; }
         textarea, input, select, button {
             width: 100%;
             margin-top: 10px;
@@ -29,17 +25,15 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
-        input[type="file"] {
-            padding: 8px;
-        }
+        input[type="file"] { padding: 8px; }
         button {
             background: #2563eb;
             cursor: pointer;
             font-weight: bold;
+            margin-top: 12px;
         }
-        button:hover {
-            background: #1d4ed8;
-        }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #1e3a8a; cursor: not-allowed; }
         .section {
             margin-bottom: 25px;
             padding: 15px;
@@ -57,6 +51,7 @@
         #uploadStatus {
             margin-top: 10px;
             color: #38bdf8;
+            font-weight: bold;
         }
         #analysisResults {
             background: #020617;
@@ -67,7 +62,36 @@
             white-space: pre-wrap;
             margin-top: 10px;
             font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
         }
+        .verdict-achat { color: #4ade80; font-weight: bold; }
+        .verdict-vente { color: #f87171; font-weight: bold; }
+        .verdict-neutre { color: #fbbf24; font-weight: bold; }
+        .card {
+            background: #0f172a;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 12px;
+        }
+        .card h4 { color: #38bdf8; margin: 0 0 8px 0; }
+        .card-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .card-item { flex: 1; min-width: 120px; }
+        .card-item label { font-size: 11px; color: #64748b; display: block; }
+        .card-item span { font-size: 14px; color: #e2e8f0; }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #334155;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 
@@ -86,32 +110,26 @@
 <div class="section">
     <h2>2️⃣ Données utilisateur</h2>
     <input type="text" id="asset" placeholder="Actif et prix actuel (ex: EURUSD 1.0845)">
-    <textarea id="obFibo" rows="4" placeholder="Données Order Block & Fibonacci"></textarea>
-    <textarea id="volumeProfile" rows="4" placeholder="Volume Profile (Global / W1 / D1 : VAL, VAH, POC)"></textarea>
-    <textarea id="indicators" rows="4" placeholder="Notes RSI / MACD / CVD"></textarea>
-    <textarea id="files" rows="3" placeholder="Fichiers joints (descriptions)"></textarea>
+    <textarea id="obFibo" rows="3" placeholder="Données Order Block & Fibonacci"></textarea>
+    <textarea id="volumeProfile" rows="3" placeholder="Volume Profile (Global / W1 / D1 : VAL, VAH, POC)"></textarea>
+    <textarea id="indicators" rows="3" placeholder="Notes RSI / MACD / CVD"></textarea>
+    <textarea id="files" rows="2" placeholder="Fichiers joints (descriptions)"></textarea>
 </div>
 
 <div class="section">
-    <h2>3️⃣ Importer vos graphiques</h2>
+    <h2>3️⃣ Importer vos graphiques (OCR)</h2>
+    <p style="color:#64748b;font-size:13px;margin-top:4px;">Uploadez vos captures multi-timeframes. Le moteur SENTINEL extrait les prix par OCR et calcule automatiquement OB, Fibo, Volume Profile, CVD, verdict et SL/TP.</p>
     <input type="file" id="chartUpload" accept="image/*" multiple />
-    <br><br>
-    <button onclick="sendCharts()">Envoyer et analyser</button>
+    <button id="uploadBtn" onclick="sendCharts()">Envoyer et analyser</button>
     <p id="uploadStatus"></p>
-</div>
-
-<div class="section">
-    <h3>Résultats complets</h3>
+    <div id="cardsContainer"></div>
     <pre id="analysisResults"></pre>
 </div>
 
 <button onclick="runAnalysis()">Générer le prompt SENTINEL</button>
-
 <div class="output" id="result"></div>
 
 <script>
-/* ================= PROMPT MAÎTRE IMMUTABLE ================= */
-
 const PROMPT_SENTINEL = `
 Initialisation du Protocole SENTINEL V2 - Audit Multi-Dimensionnel
 Agis en tant que SENTINEL, mon assistant de trading institutionnel et expert en ingénierie de flux. Je vais te fournir des données textuelles et des captures d'écran (Multi-Timeframes) concernant un actif. Tu vas analyser ce set-up en respectant strictement et dans l'ordre le protocole chronologique suivant. Ton ton sera direct, objectif, et purement orienté sur la mécanique institutionnelle (algorithmes, liquidité, volume).
@@ -132,7 +150,7 @@ Agis en tant que SENTINEL, mon assistant de trading institutionnel et expert en 
  * Délivre ton verdict sur l'état du flux institutionnel (Achat/Vente/Neutre).
  * Calcule un Stop Loss (SL) de précision absolue basé sur l'invalidation de la zone OTE (sous les 100% ou 79%) et la protection de l'OB.
  * Définis les Take Profit (TP1, TP2) en te basant exclusivement sur les cibles d'aimantation du Volume Profile (VAL, VAH, POC).
-Données d'entrée pour le trade actuel :
+Données d'entrée :
  * Actif et Prix actuel :
  * Données OB et Fibo :
  * Données Volume Profile (Global, W1, D1) :
@@ -143,28 +161,57 @@ Veuillez exécuter l'analyse.
 
 function runAnalysis() {
     const mode = document.getElementById("analysisMode").value;
-
-    let userData = `
+    const userData = `
 Mode d'analyse : ${mode}
-
 Actif et Prix actuel : ${document.getElementById("asset").value}
 Données OB et Fibo : ${document.getElementById("obFibo").value}
 Données Volume Profile : ${document.getElementById("volumeProfile").value}
 Notes RSI/MACD/CVD : ${document.getElementById("indicators").value}
 Fichiers joints : ${document.getElementById("files").value}
 `;
-
-    const finalPrompt = PROMPT_SENTINEL + "\n" + userData;
-
     document.getElementById("result").textContent =
-        "PROMPT ENVOYÉ À CHATGPT :\n\n" + finalPrompt +
+        "PROMPT ENVOYÉ À CHATGPT :\n\n" + PROMPT_SENTINEL + "\n" + userData +
         "\n\n⚠️ Connexion API OpenAI à ajouter (étape suivante).";
+}
+
+function renderCards(data) {
+    if (!data || !data.length) return "";
+    return data.map(d => {
+        const synthese = d.synthese || {};
+        const vp = d.volume_profile || {};
+        const verdict = synthese.verdict || "N/A";
+        const verdictClass = verdict === "Achat" ? "verdict-achat" : verdict === "Vente" ? "verdict-vente" : "verdict-neutre";
+        const tp = synthese.take_profit ? synthese.take_profit.join(", ") : "N/A";
+        return `
+        <div class="card">
+            <h4>📊 ${d.fichier || "Graphique"}</h4>
+            <div class="card-row">
+                <div class="card-item"><label>Verdict</label><span class="${verdictClass}">${verdict}</span></div>
+                <div class="card-item"><label>Stop Loss</label><span>${synthese.stop_loss ?? "N/A"}</span></div>
+                <div class="card-item"><label>Take Profit</label><span>${tp}</span></div>
+                <div class="card-item"><label>Micro-Structure</label><span>${d.micro_structure || "N/A"}</span></div>
+            </div>
+            <div class="card-row" style="margin-top:8px;">
+                <div class="card-item"><label>VAL</label><span>${vp.VAL ?? "N/A"}</span></div>
+                <div class="card-item"><label>POC</label><span>${vp.POC ?? "N/A"}</span></div>
+                <div class="card-item"><label>VAH</label><span>${vp.VAH ?? "N/A"}</span></div>
+                <div class="card-item"><label>Zone Fibo OTE</label><span>61.8% – 79%</span></div>
+            </div>
+            <div class="card-row" style="margin-top:8px;">
+                <div class="card-item"><label>CVD</label><span>${d.CVD ? d.CVD.pression : "N/A"}</span></div>
+                <div class="card-item"><label>OBPI</label><span>${d.OBPI ? d.OBPI.niveau_algo : "N/A"}</span></div>
+                <div class="card-item"><label>Prix détectés</label><span>${(d.prix_detectes || []).length} valeur(s)</span></div>
+            </div>
+        </div>`;
+    }).join("");
 }
 
 async function sendCharts() {
     const input = document.getElementById("chartUpload");
     const status = document.getElementById("uploadStatus");
     const resultsBox = document.getElementById("analysisResults");
+    const cardsContainer = document.getElementById("cardsContainer");
+    const btn = document.getElementById("uploadBtn");
 
     if (!input.files.length) {
         status.innerText = "Aucune image sélectionnée.";
@@ -176,22 +223,27 @@ async function sendCharts() {
         formData.append("charts", input.files[i]);
     }
 
-    status.innerText = "Analyse en cours...";
+    status.innerHTML = '<span class="spinner"></span>Analyse OCR en cours…';
     resultsBox.innerText = "";
+    cardsContainer.innerHTML = "";
+    btn.disabled = true;
 
     try {
-        const response = await fetch("/upload-charts", {
-            method: "POST",
-            body: formData
-        });
-
+        const response = await fetch("/upload-charts", { method: "POST", body: formData });
         const result = await response.json();
-        status.innerText = result.message;
 
-        resultsBox.innerText = JSON.stringify(result.data, null, 2);
+        status.innerText = result.message;
+        if (result.data && result.data.length) {
+            cardsContainer.innerHTML = renderCards(result.data);
+            resultsBox.innerText = "JSON brut :\n\n" + JSON.stringify(result.data, null, 2);
+        } else {
+            resultsBox.innerText = JSON.stringify(result, null, 2);
+        }
     } catch (error) {
         status.innerText = "Erreur lors de l'analyse.";
         console.error(error);
+    } finally {
+        btn.disabled = false;
     }
 }
 </script>
