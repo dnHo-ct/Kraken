@@ -138,12 +138,14 @@ if __name__ == "__main__":
         print(json.dumps({"error": "Aucun fichier fourni"}))
         sys.exit(1)
 
+    output_path = sys.argv[2] if len(sys.argv) >= 3 else "output/fusion.json"
+
     with open(sys.argv[1], "r") as f:
         validated = json.load(f)
 
     result = fuse(validated)
 
-    with open("output/fusion.json", "w") as f:
+    with open(output_path, "w") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
     print(f"Fusion terminée — score confluence : {result.get('confluence_score')}/100")

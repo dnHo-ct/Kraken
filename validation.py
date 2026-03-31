@@ -51,12 +51,13 @@ if __name__ == "__main__":
         sys.exit(1)
 
     input_file = sys.argv[1]
+    output_path = sys.argv[2] if len(sys.argv) >= 3 else "output/validated.json"
+
     with open(input_file, "r") as f:
         graphiques = json.load(f)
 
     results = validate_all(graphiques)
 
-    output_path = "output/validated.json"
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 

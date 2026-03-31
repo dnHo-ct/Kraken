@@ -1,417 +1,235 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>SENTINEL V2 – Analyse Complète</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            background: #0b0f1a;
-            color: #e5e7eb;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 { color: #38bdf8; margin-bottom: 4px; }
-        .subtitle { color: #475569; font-size: 13px; margin-bottom: 24px; }
-        h2 { color: #94a3b8; font-size: 16px; margin: 0 0 12px 0; }
-        h3 { color: #64748b; font-size: 14px; margin: 0 0 8px 0; }
-        textarea, input[type="text"], select {
-            width: 100%;
-            margin-top: 8px;
-            padding: 10px;
-            background: #020617;
-            color: #e5e7eb;
-            border: 1px solid #334155;
-            border-radius: 4px;
-        }
-        input[type="file"] {
-            width: 100%;
-            margin-top: 8px;
-            padding: 8px;
-            background: #020617;
-            color: #e5e7eb;
-            border: 1px solid #334155;
-            border-radius: 4px;
-        }
-        button {
-            width: 100%;
-            margin-top: 12px;
-            padding: 12px;
-            background: #2563eb;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        button:hover { background: #1d4ed8; }
-        button:disabled { background: #1e3a8a; cursor: not-allowed; opacity: 0.7; }
-        .section {
-            margin-bottom: 20px;
-            padding: 16px;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-        }
-        .pipeline-status {
-            display: flex;
-            gap: 8px;
-            margin: 16px 0;
-            flex-wrap: wrap;
-        }
-        .phase-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            border: 1px solid #334155;
-            color: #64748b;
-        }
-        .phase-badge.active { border-color: #38bdf8; color: #38bdf8; }
-        .phase-badge.done { border-color: #4ade80; color: #4ade80; }
-        .phase-badge.error { border-color: #f87171; color: #f87171; }
+<meta charset="UTF-8">
+<title>SENTINEL — Pipeline A→C · Multi-graphique + Export JSON</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #0b0f1a; color: #e5e7eb; }
 
-        #uploadStatus {
-            margin-top: 10px;
-            font-size: 13px;
-            color: #38bdf8;
-            font-weight: bold;
-            min-height: 20px;
-        }
+.topbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+.topbar h1 { color:#38bdf8; margin:0; font-size:22px; }
+.toplinks { display:flex; gap:10px; }
+.toplinks a {
+    padding:7px 14px; background:#0f172a; color:#94a3b8;
+    border:1px solid #334155; border-radius:6px; text-decoration:none; font-size:13px;
+}
+.toplinks a:hover { background:#1e293b; color:#e2e8f0; }
+.toplinks a.active { border-color:#38bdf8; color:#38bdf8; }
 
-        .decision-card {
-            background: #020617;
-            border: 1px solid #1e3a5f;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 16px;
-        }
-        .decision-card h2 { color: #38bdf8; font-size: 18px; }
+.upload-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+input[type=file] {
+    flex:1; padding:10px; background:#020617; color:#e5e7eb;
+    border:1px solid #334155; border-radius:6px; font-size:13px; cursor:pointer;
+}
+button.primary {
+    padding:10px 24px; background:#2563eb; color:#fff; border:none;
+    border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold; white-space:nowrap;
+}
+button.primary:hover { background:#1d4ed8; }
+button.primary:disabled { background:#1e3a8a; cursor:not-allowed; }
 
-        .verdict-row {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin: 16px 0;
-        }
-        .verdict-box {
-            flex: 1;
-            min-width: 100px;
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-        .verdict-box .label { font-size: 11px; color: #64748b; margin-bottom: 4px; }
-        .verdict-box .value { font-size: 16px; font-weight: bold; }
-        .bullish { color: #4ade80; }
-        .bearish { color: #f87171; }
-        .range { color: #fbbf24; }
-        .valid-yes { color: #4ade80; }
-        .valid-no { color: #f87171; }
+.graph-block {
+    background:#0f172a; border:1px solid #1e293b; border-radius:8px;
+    padding:20px; margin-bottom:24px;
+}
+.graph-block h2 { color:#38bdf8; font-size:16px; margin:0 0 14px 0; display:flex; align-items:center; gap:10px; }
+.graph-block h2 .badge {
+    font-size:11px; padding:3px 10px; border-radius:12px; font-weight:bold;
+}
+.badge-valid   { background:#14532d; color:#4ade80; border:1px solid #16a34a; }
+.badge-invalid { background:#450a0a; color:#f87171; border:1px solid #b91c1c; }
+.badge-loading { background:#1e1b4b; color:#818cf8; border:1px solid #4338ca; }
 
-        .score-bar-wrap {
-            background: #0f172a;
-            border-radius: 4px;
-            height: 8px;
-            margin: 8px 0 16px 0;
-            overflow: hidden;
-        }
-        .score-bar {
-            height: 100%;
-            border-radius: 4px;
-            background: linear-gradient(90deg, #2563eb, #38bdf8);
-            transition: width 0.6s ease;
-        }
+.block-body { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:700px){ .block-body { grid-template-columns:1fr; } }
 
-        .justif-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 12px;
-        }
-        .justif-item {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 6px;
-            padding: 10px;
-        }
-        .justif-item .jlabel { font-size: 11px; color: #64748b; margin-bottom: 4px; }
-        .justif-item .jvalue { font-size: 12px; color: #cbd5e1; }
+canvas { display:block; width:100%; border-radius:6px; border:1px solid #1e293b; }
+canvas-wrap { overflow:hidden; }
 
-        .raw-toggle {
-            margin-top: 16px;
-            font-size: 12px;
-            color: #475569;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        pre#rawJSON {
-            display: none;
-            background: #020617;
-            border: 1px solid #1e293b;
-            border-radius: 6px;
-            padding: 12px;
-            color: #86efac;
-            font-size: 11px;
-            white-space: pre-wrap;
-            margin-top: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+pre.json-out {
+    background:#020617; border:1px solid #1e293b; border-radius:6px;
+    padding:12px; color:#86efac; font-size:11px; white-space:pre-wrap;
+    max-height:320px; overflow-y:auto; margin:0;
+}
+pre.invalid { color:#f87171; }
+pre.valid   { color:#86efac; }
 
-        .prompt-output {
-            white-space: pre-wrap;
-            background: #020617;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #334155;
-            margin-top: 12px;
-            font-size: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
+.export-btn {
+    margin-top:10px; padding:8px 18px; background:#16a34a; color:#fff;
+    border:none; border-radius:5px; cursor:pointer; font-size:13px; font-weight:bold; width:100%;
+}
+.export-btn:hover { background:#15803d; }
+.export-btn:disabled { background:#14532d; cursor:not-allowed; opacity:0.6; }
 
-        .spinner {
-            display: inline-block;
-            width: 12px; height: 12px;
-            border: 2px solid #334155;
-            border-top-color: #38bdf8;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 6px;
-            vertical-align: middle;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+.spinner {
+    display:inline-block; width:12px; height:12px;
+    border:2px solid #334155; border-top-color:#38bdf8;
+    border-radius:50%; animation:spin .8s linear infinite;
+    margin-right:6px; vertical-align:middle;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
 </head>
 <body>
 
-<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px">
-    <h1 style="margin:0">SENTINEL V2</h1>
-    <a href="/phase0.html" style="padding:7px 16px;background:#0f172a;color:#818cf8;border:1px solid #3730a3;border-radius:6px;text-decoration:none;font-size:13px;font-weight:bold">🔍 Phase 0 — Lecture graphique</a>
-</div>
-<div class="subtitle">Moteur d'analyse institutionnelle — Phase A · Validation &nbsp;|&nbsp; Phase B · Fusion &nbsp;|&nbsp; Phase C · Décision</div>
-
-<!-- Section 1 -->
-<div class="section">
-    <h2>1️⃣ Mode d'analyse</h2>
-    <select id="analysisMode">
-        <option value="setup">Analyse d'un setup / actif précis</option>
-        <option value="scan">Scan global du marché</option>
-    </select>
-</div>
-
-<!-- Section 2 -->
-<div class="section">
-    <h2>2️⃣ Données utilisateur</h2>
-    <input type="text" id="asset" placeholder="Actif et prix actuel (ex: EURUSD 1.0845)">
-    <textarea id="obFibo" rows="3" placeholder="Données Order Block & Fibonacci"></textarea>
-    <textarea id="volumeProfile" rows="3" placeholder="Volume Profile (Global / W1 / D1 : VAL, VAH, POC)"></textarea>
-    <textarea id="indicators" rows="3" placeholder="Notes RSI / MACD / CVD"></textarea>
-    <textarea id="files" rows="2" placeholder="Fichiers joints (descriptions)"></textarea>
-</div>
-
-<!-- Section 3 : Upload + Pipeline -->
-<div class="section">
-    <h2>3️⃣ Importer vos graphiques — Pipeline SENTINEL</h2>
-    <p style="color:#64748b;font-size:12px;margin:4px 0 10px 0;">
-        Chaque graphique passe par : OCR → Validation → Fusion multi-TF → Décision déterministe.
-    </p>
-    <input type="file" id="chartUpload" accept="image/*" multiple />
-
-    <div class="pipeline-status">
-        <span class="phase-badge" id="phaseA">Phase A · Validation</span>
-        <span class="phase-badge" id="phaseB">Phase B · Fusion</span>
-        <span class="phase-badge" id="phaseC">Phase C · Décision</span>
+<div class="topbar">
+    <h1>SENTINEL V2</h1>
+    <div class="toplinks">
+        <a href="/" class="active">📊 Pipeline A→C</a>
+        <a href="/phase0.html">🔍 Phase 0 — Lecture</a>
     </div>
-
-    <button id="uploadBtn" onclick="sendCharts()">🚀 Lancer le pipeline SENTINEL</button>
-    <div id="uploadStatus"></div>
-
-    <div id="decisionContainer"></div>
 </div>
 
-<!-- Section 4 : Prompt GPT -->
-<button onclick="runAnalysis()">📋 Générer le prompt SENTINEL pour ChatGPT</button>
-<div class="prompt-output" id="result" style="display:none;"></div>
+<div class="upload-row">
+    <input type="file" id="chartFiles" accept="image/*" multiple>
+    <button class="primary" id="uploadBtn" onclick="uploadCharts()">🚀 Analyser tous</button>
+</div>
+
+<div id="graphsContainer"></div>
 
 <script>
-const PROMPT_SENTINEL = `Initialisation du Protocole SENTINEL V2 - Audit Multi-Dimensionnel
-Agis en tant que SENTINEL, mon assistant de trading institutionnel et expert en ingénierie de flux.
-Tu reçois une structure JSON déterministe issue du moteur SENTINEL. Analyse strictement ce JSON
-en respectant le protocole chronologique suivant :
-Étape 1 : Cartographie Macro et Liquidité (HTF)
-Étape 2 : Ingénierie des Zones de Valeur (Volume Profile)
-Étape 3 : Momentum et Divergences (Oscillateurs)
-Étape 4 : Micro-Structure, Flux et Exécution (LTF)
-Étape 5 : Synthèse SENTINEL et Paramétrage du Risque
-Veuillez exécuter l'analyse sur la base du JSON fourni.`;
+async function uploadCharts() {
+    const files = document.getElementById('chartFiles').files;
+    const container = document.getElementById('graphsContainer');
+    const btn = document.getElementById('uploadBtn');
+    container.innerHTML = '';
 
-function runAnalysis() {
-    const mode = document.getElementById("analysisMode").value;
-    const userData = [
-        `Mode : ${mode}`,
-        `Actif : ${document.getElementById("asset").value}`,
-        `OB/Fibo : ${document.getElementById("obFibo").value}`,
-        `Volume Profile : ${document.getElementById("volumeProfile").value}`,
-        `RSI/MACD/CVD : ${document.getElementById("indicators").value}`,
-    ].join("\n");
-    const el = document.getElementById("result");
-    el.style.display = "block";
-    el.textContent = PROMPT_SENTINEL + "\n\nDonnées :\n" + userData +
-        "\n\n⚠️ Connexion API OpenAI à brancher (étape suivante).";
-}
+    if (!files.length) { alert("Sélectionnez au moins un fichier."); return; }
 
-function resetPhases() {
-    ["phaseA","phaseB","phaseC"].forEach(id => {
-        const el = document.getElementById(id);
-        el.className = "phase-badge";
-    });
-}
-function setPhase(id, state) {
-    document.getElementById(id).className = "phase-badge " + state;
-}
-
-function biasClass(bias) {
-    if (bias === "bullish") return "bullish";
-    if (bias === "bearish") return "bearish";
-    return "range";
-}
-
-function renderDecision(data) {
-    if (!data || !data.decision) {
-        return `<div class="decision-card" style="border-color:#f87171">
-            <h2 style="color:#f87171">⛔ Pipeline arrêté — Phase ${data.phase || "?"}</h2>
-            <p>${data.message || "Erreur inconnue"}</p>
-            ${data.errors ? `<pre style="color:#fca5a5;font-size:11px">${JSON.stringify(data.errors, null, 2)}</pre>` : ""}
-            ${data.fusion ? `<pre style="color:#fca5a5;font-size:11px">${JSON.stringify(data.fusion, null, 2)}</pre>` : ""}
-        </div>`;
-    }
-    const d = data.decision;
-    const bc = biasClass(d.bias);
-    const validClass = d.setup_valid ? "valid-yes" : "valid-no";
-    const validLabel = d.setup_valid ? "✅ VALIDE" : "❌ REJETÉ";
-    const scoreW = Math.min(100, d.confidence_score || 0);
-    const barColor = scoreW >= 80 ? "#4ade80" : scoreW >= 60 ? "#38bdf8" : "#f87171";
-    const j = d.justification || {};
-    const entry = (d.entry_zone || []).filter(Boolean).join(" – ") || "N/A";
-    const tp = (d.take_profit || []).filter(Boolean).join(" / ") || "N/A";
-
-    return `
-    <div class="decision-card">
-        <h2>📊 Décision SENTINEL — Prête pour ChatGPT</h2>
-        <div class="verdict-row">
-            <div class="verdict-box">
-                <div class="label">BIAIS</div>
-                <div class="value ${bc}">${d.bias?.toUpperCase() || "N/A"}</div>
-            </div>
-            <div class="verdict-box">
-                <div class="label">SETUP</div>
-                <div class="value ${validClass}">${validLabel}</div>
-            </div>
-            <div class="verdict-box">
-                <div class="label">SCORE</div>
-                <div class="value" style="color:#38bdf8">${d.confidence_score}/100</div>
-            </div>
-            <div class="verdict-box">
-                <div class="label">R/R</div>
-                <div class="value" style="color:#e2e8f0">${d.risk_reward || "N/A"}</div>
-            </div>
-        </div>
-
-        <div class="score-bar-wrap">
-            <div class="score-bar" style="width:${scoreW}%;background:linear-gradient(90deg,${barColor},${barColor}aa)"></div>
-        </div>
-
-        <div class="verdict-row">
-            <div class="verdict-box" style="flex:2">
-                <div class="label">ZONE D'ENTRÉE</div>
-                <div class="value" style="font-size:13px;color:#e2e8f0">${entry}</div>
-            </div>
-            <div class="verdict-box">
-                <div class="label">STOP LOSS</div>
-                <div class="value" style="color:#f87171">${d.stop_loss ?? "N/A"}</div>
-            </div>
-            <div class="verdict-box" style="flex:2">
-                <div class="label">TAKE PROFIT</div>
-                <div class="value" style="color:#4ade80">${tp}</div>
-            </div>
-        </div>
-
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:10px;margin-bottom:12px">
-            <div class="label" style="font-size:11px;color:#64748b">INVALIDATION</div>
-            <div style="font-size:12px;color:#fbbf24;margin-top:4px">${d.invalidation || "N/A"}</div>
-        </div>
-
-        <h3>Justifications déterministes</h3>
-        <div class="justif-grid">
-            ${Object.entries(j).map(([k, v]) => `
-            <div class="justif-item">
-                <div class="jlabel">${k.replace(/_/g," ").toUpperCase()}</div>
-                <div class="jvalue">${v || "N/A"}</div>
-            </div>`).join("")}
-        </div>
-
-        <div class="raw-toggle" onclick="toggleRaw()">▶ Voir JSON brut (decision_ready_for_gpt.json)</div>
-        <pre id="rawJSON">${JSON.stringify(d, null, 2)}</pre>
-    </div>`;
-}
-
-function toggleRaw() {
-    const el = document.getElementById("rawJSON");
-    const vis = el.style.display === "block";
-    el.style.display = vis ? "none" : "block";
-}
-
-async function sendCharts() {
-    const input = document.getElementById("chartUpload");
-    const status = document.getElementById("uploadStatus");
-    const container = document.getElementById("decisionContainer");
-    const btn = document.getElementById("uploadBtn");
-
-    if (!input.files.length) {
-        status.innerText = "⚠️ Aucune image sélectionnée.";
-        return;
-    }
-
-    resetPhases();
-    container.innerHTML = "";
     btn.disabled = true;
-    status.innerHTML = '<span class="spinner"></span>Phase A · OCR en cours…';
-    setPhase("phaseA", "active");
+    btn.innerHTML = '<span class="spinner"></span>Analyse en cours…';
 
-    const formData = new FormData();
-    for (let i = 0; i < input.files.length; i++) formData.append("charts", input.files[i]);
+    for (const file of files) {
+        const block  = document.createElement('div'); block.className = 'graph-block';
+        const title  = document.createElement('h2');
+        const badge  = document.createElement('span'); badge.className = 'badge badge-loading'; badge.textContent = '⏳ En cours';
+        title.appendChild(document.createTextNode(file.name + ' ')); title.appendChild(badge);
 
-    try {
-        const response = await fetch("/upload-charts", { method: "POST", body: formData });
-        const result = await response.json();
+        const body   = document.createElement('div'); body.className = 'block-body';
+        const canvasWrap = document.createElement('div');
+        const cvs    = document.createElement('canvas');
+        const rightCol = document.createElement('div');
+        const pre    = document.createElement('pre'); pre.className = 'json-out'; pre.textContent = 'Lecture en cours…';
+        const exportBtn = document.createElement('button'); exportBtn.textContent = '⬇ Exporter JSON';
+        exportBtn.className = 'export-btn'; exportBtn.disabled = true;
 
-        if (result.phase === "A") {
-            setPhase("phaseA", "error");
-            status.innerText = result.message;
-        } else if (result.phase === "B") {
-            setPhase("phaseA", "done");
-            setPhase("phaseB", "error");
-            status.innerText = result.message;
-        } else {
-            setPhase("phaseA", "done");
-            setPhase("phaseB", "done");
-            setPhase("phaseC", "done");
-            status.innerText = result.message;
+        canvasWrap.appendChild(cvs);
+        rightCol.appendChild(pre); rightCol.appendChild(exportBtn);
+        body.appendChild(canvasWrap); body.appendChild(rightCol);
+        block.appendChild(title); block.appendChild(body);
+        container.appendChild(block);
+
+        const ctx = cvs.getContext('2d');
+        const img = new Image(); img.src = URL.createObjectURL(file);
+        await new Promise(r => img.onload = r);
+        cvs.width = img.width; cvs.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        try {
+            const formData = new FormData(); formData.append('chart', file);
+            const response = await fetch('/upload-graph', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            badge.textContent = data.setup_valid ? '✅ VALIDE' : '❌ REJETÉ';
+            badge.className   = 'badge ' + (data.setup_valid ? 'badge-valid' : 'badge-invalid');
+            pre.textContent   = JSON.stringify(data, null, 2);
+            pre.className     = 'json-out ' + (data.setup_valid ? 'valid' : 'invalid');
+            exportBtn.disabled = false;
+
+            exportBtn.onclick = () => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = `${file.name.replace(/\.[^.]+$/, '')}_decision.json`;
+                a.click();
+            };
+
+            drawOverlay(ctx, cvs, data);
+
+        } catch (err) {
+            console.error(err);
+            badge.textContent = '❌ Erreur'; badge.className = 'badge badge-invalid';
+            pre.textContent = 'Erreur lors de l\'upload ou de l\'analyse.';
+            pre.className = 'json-out invalid';
         }
+    }
 
-        container.innerHTML = renderDecision(result);
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Analyser tous';
+}
 
-    } catch (err) {
-        status.innerText = "Erreur réseau ou serveur.";
-        console.error(err);
-    } finally {
-        btn.disabled = false;
+function safeMax(...vals) {
+    const nums = vals.flat().filter(v => typeof v === 'number' && isFinite(v));
+    return nums.length ? Math.max(...nums) : 1;
+}
+
+function drawLine(ctx, y, color, label, xAlign = 'left') {
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ctx.canvas.width, y); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = 'bold 14px Arial';
+    const x = xAlign === 'right' ? ctx.canvas.width - 150 : 10;
+    ctx.fillText(label, x, y - 5);
+}
+
+function drawOverlay(ctx, cvs, data) {
+    const vp = data.justification?.volume_profile || {};
+    const vpVals = [vp.VAL, vp.POC, vp.VAH].filter(v => typeof v === 'number');
+    const entryVals = (data.entry_zone || []).filter(Boolean);
+    const slVals    = data.stop_loss != null ? [data.stop_loss] : [];
+    const tpVals    = (data.take_profit || []).filter(Boolean);
+    const allNums   = [...vpVals, ...entryVals, ...slVals, ...tpVals];
+    const maxVal    = safeMax(allNums);
+    if (!maxVal) return;
+
+    const H = cvs.height;
+    const scaleY = v => H - (v / maxVal * H);
+
+    // Volume Profile lines
+    const vpColors = { VAL: 'orange', POC: '#4ade80', VAH: '#f87171' };
+    for (const [key, val] of Object.entries(vp)) {
+        if (typeof val !== 'number') continue;
+        drawLine(ctx, scaleY(val), vpColors[key] || 'white', `${key}: ${val}`);
+    }
+
+    // Entry / SL / TP
+    const levelDefs = [
+        { label: 'Entry', vals: entryVals, color: 'cyan' },
+        { label: 'StopLoss', vals: slVals, color: '#f87171' },
+        { label: 'TakeProfit', vals: tpVals, color: '#4ade80' },
+    ];
+    for (const { label, vals, color } of levelDefs) {
+        for (const val of vals) {
+            if (typeof val !== 'number') continue;
+            drawLine(ctx, scaleY(val), color, `${label}: ${val}`, 'right');
+        }
+    }
+
+    // Zone overlays
+    const zoneH = 0.03 * H;
+    ctx.globalAlpha = 0.2;
+    const zones = [
+        { key: 'order_blocks', color: 'purple',  offset: 0.03 },
+        { key: 'fibonacci',    color: 'cyan',    offset: 0.06 },
+        { key: 'obpi',         color: 'yellow',  offset: 0.09 },
+    ];
+    for (const { key, color, offset } of zones) {
+        if (data.justification?.[key]) {
+            ctx.fillStyle = color;
+            ctx.fillRect(0, H - offset * H, cvs.width, zoneH);
+        }
+    }
+    ctx.globalAlpha = 1;
+
+    // Justification labels
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, cvs.width, Object.keys(data.justification || {}).length * 18 + 10);
+    ctx.fillStyle = '#e2e8f0'; ctx.font = '13px Arial';
+    let yText = 18;
+    for (const [k, v] of Object.entries(data.justification || {})) {
+        if (typeof v === 'object') continue;
+        ctx.fillText(`${k}: ${String(v).substring(0, 80)}`, 8, yText);
+        yText += 18;
     }
 }
 </script>

@@ -284,7 +284,7 @@
       ctx.drawImage(img, 0, 0);
 
       try {
-        const response = await fetch('/upload-graph', { method: 'POST', body: formData });
+        const response = await fetch('/upload-phase0', { method: 'POST', body: formData });
         const data = await response.json();
 
         // Status
