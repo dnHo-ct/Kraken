@@ -1,0 +1,98 @@
+{
+  "timeframes_count": 2,
+  "HTF": {
+    "fichier": "46c42ab4b2e0c59f607dc0f3587856e5",
+    "bias": "bullish",
+    "volume_profile": {
+      "VAL": 24,
+      "POC": 3080,
+      "VAH": 3180
+    },
+    "order_blocks": [
+      {
+        "niveau": 3180,
+        "importance": "fort",
+        "source": "HTF"
+      },
+      {
+        "niveau": 3160,
+        "importance": "fort",
+        "source": "HTF"
+      },
+      {
+        "niveau": 3140,
+        "importance": "fort",
+        "source": "HTF"
+      }
+    ],
+    "CVD": {
+      "delta": 1500,
+      "pression": "achat dominant"
+    },
+    "micro_structure": "Engulfing haussier"
+  },
+  "LTF": {
+    "fichier": "bddbb81e8a61982e53199d1c7bc75aa7",
+    "bias": "bullish",
+    "volume_profile": {
+      "VAL": 4,
+      "POC": 2914,
+      "VAH": 2914
+    },
+    "order_blocks": [
+      {
+        "niveau": 6,
+        "importance": "fort",
+        "source": "LTF"
+      },
+      {
+        "niveau": 4,
+        "importance": "fort",
+        "source": "LTF"
+      },
+      {
+        "niveau": 2914,
+        "importance": "fort",
+        "source": "LTF"
+      }
+    ],
+    "micro_structure": "Engulfing haussier"
+  },
+  "global_bias": "bullish",
+  "order_blocks_hierarchises": [
+    {
+      "niveau": 3180,
+      "importance": "fort",
+      "source": "HTF"
+    },
+    {
+      "niveau": 3160,
+      "importance": "fort",
+      "source": "HTF"
+    },
+    {
+      "niveau": 3140,
+      "importance": "fort",
+      "source": "HTF"
+    },
+    {
+      "niveau": 6,
+      "importance": "fort",
+      "source": "LTF"
+    },
+    {
+      "niveau": 4,
+      "importance": "fort",
+      "source": "LTF"
+    },
+    {
+      "niveau": 2914,
+      "importance": "fort",
+      "source": "LTF"
+    }
+  ],
+  "cvd_confirms_direction": true,
+  "confluence_score": 100,
+  "rejected": false,
+  "rejection_reason": null
+}
