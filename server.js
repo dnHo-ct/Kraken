@@ -1,24 +1,36 @@
-const express = require('express');
-const path = require('path');
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
 
 const app = express();
-app.use(express.json());
+const upload = multer({ dest: "uploads/" });
 
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, "public")));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.post("/upload-charts", upload.array("charts"), (req, res) => {
+    if (!req.files || req.files.length === 0) {
+        return res.json({ message: "Aucun fichier reçu." });
+    }
 
-app.post('/analyze', (req, res) => {
-    const data = req.body;
+    console.log(
+        "Graphiques reçus :",
+        req.files.map(f => f.originalname)
+    );
+
     res.json({
-        status: 'success',
-        analysis: 'Résultat de ton analyse ici...'
+        message: `${req.files.length} graphique(s) reçu(s) avec succès.`
     });
 });
 
-const port = 5000;
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Serveur lancé sur http://0.0.0.0:${port}`);
+app.post("/analyze", (req, res) => {
+    const data = req.body;
+    res.json({
+        status: "success",
+        analysis: "Résultat de ton analyse ici..."
+    });
+});
+
+const PORT = 5000;
+app.listen(PORT, "0.0.0.0", () => {
+    console.log("Serveur SENTINEL actif sur le port", PORT);
 });
