@@ -1,329 +1,117 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Site de Trading</title>
-    <!-- Lien vers Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .container {
-            margin-top: 50px;
-        }
-        .chart-section {
-            margin-bottom: 30px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kraken Multi-Graph Interface – Premium</title>
+<style>
+  body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:20px;}
+  h1 { text-align:center; color:#58a6ff; margin-bottom: 30px;}
+  #uploadForm { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:20px;}
+  input[type=file] { padding:8px; border-radius:5px; border:none; cursor:pointer; background:#161b22; color:#c9d1d9;}
+  button { padding:10px 25px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; transition:0.2s; }
+  button#submitBtn { background:#238636; color:#fff; }
+  button#submitBtn:hover { background:#2ea043; }
+  button#exportJSON { background:#0969da; color:#fff; margin-top:20px; display:none;}
+  button#exportJSON:hover { background:#218bff; }
+  #progress { margin:15px 0; font-weight:bold; text-align:center; }
+  .chart-card { background:#161b22; padding:15px; border-radius:8px; margin-bottom:15px; box-shadow:0 0 15px rgba(0,0,0,0.5);}
+  .chart-card h3 { margin:0 0 8px 0; color:#79c0ff;}
+  canvas { display:block; margin:10px auto; background:#0d1117; border:1px solid #30363d; border-radius:5px; }
+  pre { background:#0d1117; padding:10px; border-radius:5px; overflow-x:auto; }
+  .label { font-weight:bold; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center">Analyse de Marché</h1>
-        
-        <!-- Section pour les graphiques -->
-        <div class="chart-section">
-            <h2>Graphiques Multi-Timeframes</h2>
-            <div class="row">
-                <div class="col-md-6">
-                    <h4>Weekly (W1)</h4>
-                    <img src="URL_DE_TON_IMAGE_W1" class="img-fluid" alt="Graphique Weekly">
-                </div>
-                <div class="col-md-6">
-                    <h4>Daily (D1)</h4>
-                    <img src="URL_DE_TON_IMAGE_D1" class="img-fluid" alt="Graphique Daily">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <h4>4H</h4>
-                    <img src="URL_DE_TON_IMAGE_4H" class="img-fluid" alt="Graphique 4H">
-                </div>
-                <div class="col-md-6">
-                    <h4>M15</h4>
-                    <img src="URL_DE_TON_IMAGE_M15" class="img-fluid" alt="Graphique M15">
-                </div>
-            </div>
-        </div>
-        
-        <!-- Section pour le formulaire -->
-        <div class="chart-section">
-            <h2>Formulaire d'Analyse</h2>
-            <form id="analysisForm">
-                <div class="form-group">
-                    <label for="asset">Actif</label>
-                    <input type="text" class="form-control" id="asset" placeholder="Nom de l'actif">
-                </div>
-                <div class="form-group">
-                    <label for="price">Prix actuel</label>
-                    <input type="text" class="form-control" id="price" placeholder="Prix actuel">
-                </div>
-                <!-- Ajoute d'autres champs si nécessaire -->
-                <button type="submit" class="btn btn-primary">Analyser</button>
-            </form>
-        </div>
-        
-        <!-- Section pour les notifications -->
-        <div class="chart-section">
-            <h2>Résultat</h2>
-            <div id="result" class="alert alert-info">
-                <!-- La décision sera affichée ici -->
-            </div>
-        </div>
-    </div>
 
-    <!-- Lien vers jQuery et Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-        // Ici, tu ajouteras le JavaScript pour envoyer les données vers ton backend ou ChatGPT et afficher la réponse.
-    </script>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>SENTINEL V2 – Institutional Market Analysis</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<h1>Kraken Multi-Graph Interface – Premium</h1>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0b0f1a;
-            color: #e5e7eb;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 {
-            color: #38bdf8;
-        }
-        textarea, input, select, button {
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-            background: #020617;
-            color: #e5e7eb;
-            border: 1px solid #334155;
-            border-radius: 4px;
-        }
-        button {
-            background: #2563eb;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #1d4ed8;
-        }
-        .section {
-            margin-bottom: 25px;
-            padding: 15px;
-            border: 1px solid #1e293b;
-            border-radius: 6px;
-        }
-        .output {
-            white-space: pre-wrap;
-            background: #020617;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #334155;
-            margin-top: 20px;
-        }
-    </style>
-</head>
+<form id="uploadForm">
+  <input type="file" id="charts" name="charts" multiple accept="image/*" />
+  <button type="submit" id="submitBtn">Analyser les Graphiques</button>
+</form>
 
-<body>
-
-<h1>SENTINEL V2 – Audit Institutionnel</h1>
-
-<div class="section">
-    <h2>1️⃣ Mode d’analyse</h2>
-    <select id="analysisMode">
-        <option value="setup">Analyse d’un setup / actif précis</option>
-        <option value="scan">Scan global du marché</option>
-    </select>
-</div>
-
-<div class="section">
-    <h2>2️⃣ Données utilisateur</h2>
-
-    <input type="text" id="asset" placeholder="Actif et prix actuel (ex: EURUSD 1.0845)">
-    
-    <textarea id="obFibo" rows="4" placeholder="Données Order Block & Fibonacci"></textarea>
-
-    <textarea id="volumeProfile" rows="4" placeholder="Volume Profile (Global / W1 / D1 : VAL, VAH, POC)"></textarea>
-
-    <textarea id="indicators" rows="4" placeholder="Notes RSI / MACD / CVD"></textarea>
-
-    <textarea id="files" rows="3" placeholder="Fichiers joints (screenshots, TF, descriptions)"></textarea>
-</div>
-
-<button onclick="runAnalysis()">Lancer l’analyse SENTINEL</button>
-
-<div class="output" id="result"></div>
+<div id="progress">0 graphiques traités</div>
+<div id="results"></div>
+<button id="exportJSON">Exporter JSON Fusionné</button>
 
 <script>
-/* ================= PROMPT MAÎTRE IMMUTABLE ================= */
+const uploadForm = document.getElementById("uploadForm");
+const progress = document.getElementById("progress");
+const resultsDiv = document.getElementById("results");
+const exportBtn = document.getElementById("exportJSON");
 
-const PROMPT_SENTINEL = `
-Initialisation du Protocole SENTINEL V2 - Audit Multi-Dimensionnel
-Agis en tant que SENTINEL, mon assistant de trading institutionnel et expert en ingénierie de flux. Je vais te fournir des données textuelles et des captures d'écran (Multi-Timeframes) concernant un actif. Tu vas analyser ce set-up en respectant strictement et dans l'ordre le protocole chronologique suivant. Ton ton sera direct, objectif, et purement orienté sur la mécanique institutionnelle (algorithmes, liquidité, volume).
-Étape 1 : Cartographie Macro et Liquidité (TF : W1/D1/H4)
- * Identifie et valide la prise de liquidité majeure (ex: balayage d'un creux/sommet historique à une date précise).
- * Confirme la présence du prix dans un Order Block (OB) de haut niveau et valide ses bornes (Premium/Discount de l'OB).
-Étape 2 : Ingénierie des Zones de Valeur (Volume Profile)
- * Analyse la position du prix actuel (Current Price) par rapport aux 3 niveaux de Volume Profile fournis : Global, Weekly (W1), et Daily (D1).
- * Détermine mathématiquement si le prix est en phase de décote (sous la VAL), de prime (au-dessus de la VAH) ou d'équilibre (sur le POC).
-Étape 3 : Momentum et Divergences (Oscillateurs)
- * Évalue l'état directionnel du MACD (12, 26, 9) et les croisements sur les Timeframes supérieurs.
- * Identifie toute divergence (Standard ou Cachée) sur le RSI (D1/H4) par rapport à l'action du prix (Higher Highs / Lower Lows).
-Étape 4 : Micro-Structure, Flux et Exécution (TF : M15/M5)
- * Décode la pression du carnet via l'état du CVD et de l'OBPI (si fourni).
- * Identifie la figure chartiste de retournement exact (ex: Étoile du matin, Engulfing).
- * Valide le positionnement algorithmique de l'entrée sur la grille de retracement Fibonacci (Recherche stricte de la zone OTE : 61.8% à 79%).
-Étape 5 : Synthèse SENTINEL et Paramétrage du Risque (Verdict Final)
- * Délivre ton verdict sur l'état du flux institutionnel (Achat/Vente/Neutre).
- * Calcule un Stop Loss (SL) de précision absolue basé sur l'invalidation de la zone OTE (sous les 100% ou 79%) et la protection de l'OB.
- * Définis les Take Profit (TP1, TP2) en te basant exclusivement sur les cibles d'aimantation du Volume Profile (VAL, VAH, POC).
-Données d'entrée pour le trade actuel :
- * Actif et Prix actuel :
- * Données OB et Fibo :
- * Données Volume Profile (Global, W1, D1) :
- * Notes RSI/MACD/CVD :
- * Fichiers joints :
-Veuillez exécuter l'analyse.
-`;
+let allResults = [];
 
-/* ================= LOGIQUE ================= */
+uploadForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  resultsDiv.innerHTML = "";
+  allResults = [];
+  exportBtn.style.display = "none";
 
-function runAnalysis() {
-    const mode = document.getElementById("analysisMode").value;
+  const files = document.getElementById("charts").files;
+  if (!files.length) return alert("Sélectionnez au moins un graphique.");
 
-    let userData = `
-Mode d’analyse : ${mode}
-
-Actif et Prix actuel : ${document.getElementById("asset").value}
-Données OB et Fibo : ${document.getElementById("obFibo").value}
-Données Volume Profile : ${document.getElementById("volumeProfile").value}
-Notes RSI/MACD/CVD : ${document.getElementById("indicators").value}
-Fichiers joints : ${document.getElementById("files").value}
-`;
-
-    const finalPrompt = PROMPT_SENTINEL + "\n" + userData;
-
-    document.getElementById("result").textContent =
-        "PROMPT ENVOYÉ À CHATGPT :\n\n" + finalPrompt +
-        "\n\n⚠️ Connexion API OpenAI à ajouter (étape suivante).";
-}
-</script>
-<!-- === UPLOAD GRAPHIQUES === -->
-<section style="margin-top:20px;">
-  <h3>Importer des graphiques</h3>
-
-  <input 
-    type="file" 
-    id="chartUpload" 
-    accept="image/*" 
-    multiple 
-  />
-
-  <br><br>
-
-  <button onclick="sendCharts()">Envoyer les graphiques</button>
-
-  <p id="uploadStatus"></p>
-</section>
-
-<script>
-async function sendCharts() {
-  const input = document.getElementById("chartUpload");
-  const status = document.getElementById("uploadStatus");
-
-  if (!input.files.length) {
-    status.innerText = "Aucune image sélectionnée.";
-    return;
-  }
+  progress.innerText = `0 / ${files.length} graphiques traités...`;
 
   const formData = new FormData();
+  for (const file of files) formData.append("charts", file);
 
-  for (let i = 0; i < input.files.length; i++) {
-    formData.append("charts", input.files[i]);
-  }
+  const res = await fetch("/upload-charts", { method: "POST", body: formData });
+  const data = await res.json();
 
-  status.innerText = "Envoi en cours...";
+  data.data.forEach((chart, idx) => {
+    allResults.push(chart);
 
-  try {
-    const response = await fetch("/upload-charts", {
-      method: "POST",
-      body: formData
-    });
+    const card = document.createElement("div");
+    card.className = "chart-card";
 
-    const result = await response.json();
-    status.innerText = result.message;
-  } catch (error) {
-    status.innerText = "Erreur lors de l’envoi.";
-    console.error(error);
-  }
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>SENTINEL V2 – Analyse Complète</title>
-</head>
-<body>
-  <h1>SENTINEL V2 – Analyse Complète</h1>
+    // Création du canvas pour l'image + zones
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = 300;
+    const ctx = canvas.getContext("2d");
 
-  <section>
-    <h3>Importer vos graphiques</h3>
-    <input type="file" id="chartUpload" accept="image/*" multiple />
-    <br><br>
-    <button onclick="sendCharts()">Envoyer et analyser</button>
-    <p id="uploadStatus"></p>
-  </section>
+    const img = new Image();
+    img.src = chart.file ? `/uploads/${chart.file}` : '';
+    img.onload = () => {
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
 
-  <section>
-    <h3>Résultats complets</h3>
-    <pre id="analysisResults"></pre>
-  </section>
+      // Zones OB en rouge/vert
+      ctx.fillStyle = chart.bias.toLowerCase() === "bullish" ? "rgba(0,255,0,0.25)" : "rgba(255,0,0,0.25)";
+      ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
 
-<script>
-async function sendCharts() {
-  const input = document.getElementById("chartUpload");
-  const status = document.getElementById("uploadStatus");
-  const resultsBox = document.getElementById("analysisResults");
+      // Zone entrée Fibo
+      ctx.fillStyle = "rgba(255,215,0,0.3)";
+      ctx.fillRect(0, canvas.height - 100, canvas.width, 30);
+    };
 
-  if (!input.files.length) {
-    status.innerText = "Aucune image sélectionnée.";
-    return;
-  }
+    card.innerHTML = `
+      <h3>Graphique : ${chart.bias} - Score : ${chart.confidence_score}</h3>
+      <p><span class="label">Biais:</span> ${chart.bias}</p>
+      <p><span class="label">Entrée:</span> [${chart.entry_zone.join(", ")}], <span class="label">SL:</span> ${chart.stop_loss}, <span class="label">TP:</span> [${chart.take_profit.join(", ")}]</p>
+      <p><span class="label">R/R:</span> ${chart.risk_reward}</p>
+      <pre>${JSON.stringify(chart.justification, null, 2)}</pre>
+      <p style="color:#f85149">${chart.errors.join("; ")}</p>
+    `;
+    card.appendChild(canvas);
+    resultsDiv.appendChild(card);
+    progress.innerText = `${idx+1} / ${files.length} graphiques traités...`;
+  });
 
-  const formData = new FormData();
-  for (let i = 0; i < input.files.length; i++) {
-    formData.append("charts", input.files[i]);
-  }
+  exportBtn.style.display = "inline-block";
+});
 
-  status.innerText = "Analyse en cours...";
-  resultsBox.innerText = "";
-
-  try {
-    const response = await fetch("/upload-charts", {
-      method: "POST",
-      body: formData
-    });
-
-    const result = await response.json();
-    status.innerText = result.message;
-
-    // Affichage complet des données + verdict + SL/TP
-    resultsBox.innerText = JSON.stringify(result.data, null, 2);
-  } catch (error) {
-    status.innerText = "Erreur lors de l’analyse.";
-    console.error(error);
-  }
-}
+exportBtn.addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(allResults, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "decision_fusionnee.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
 </script>
-</body>
-</html>
-</body> 
-</html>
+
 </body>
 </html>
