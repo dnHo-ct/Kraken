@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>SENTINEL — Pipeline A→C · Multi-graphique + Export JSON</title>
+<title>SENTINEL — Batch Multi-Graph + Export Fusionné</title>
 <style>
 * { box-sizing: border-box; }
 body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #0b0f1a; color: #e5e7eb; }
@@ -17,25 +17,34 @@ body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #0b
 .toplinks a:hover { background:#1e293b; color:#e2e8f0; }
 .toplinks a.active { border-color:#38bdf8; color:#38bdf8; }
 
-.upload-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+.controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
 input[type=file] {
     flex:1; padding:10px; background:#020617; color:#e5e7eb;
     border:1px solid #334155; border-radius:6px; font-size:13px; cursor:pointer;
 }
-button.primary {
-    padding:10px 24px; background:#2563eb; color:#fff; border:none;
-    border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold; white-space:nowrap;
+button {
+    padding:10px 20px; color:#fff; border:none; border-radius:6px;
+    cursor:pointer; font-size:13px; font-weight:bold; white-space:nowrap;
 }
-button.primary:hover { background:#1d4ed8; }
-button.primary:disabled { background:#1e3a8a; cursor:not-allowed; }
+button.btn-primary { background:#2563eb; }
+button.btn-primary:hover { background:#1d4ed8; }
+button.btn-primary:disabled { background:#1e3a8a; cursor:not-allowed; opacity:0.7; }
+button.btn-export { background:#16a34a; }
+button.btn-export:hover { background:#15803d; }
+button.btn-export:disabled { background:#14532d; cursor:not-allowed; opacity:0.6; }
+button.btn-export-single { background:#0f766e; font-size:12px; padding:7px 14px; width:100%; margin-top:8px; }
+button.btn-export-single:hover { background:#0d6b63; }
+button.btn-export-single:disabled { background:#134e4a; cursor:not-allowed; opacity:0.6; }
 
 .graph-block {
     background:#0f172a; border:1px solid #1e293b; border-radius:8px;
     padding:20px; margin-bottom:24px;
 }
-.graph-block h2 { color:#38bdf8; font-size:16px; margin:0 0 14px 0; display:flex; align-items:center; gap:10px; }
-.graph-block h2 .badge {
+.block-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.block-header h2 { color:#38bdf8; font-size:15px; margin:0; }
+.badge {
     font-size:11px; padding:3px 10px; border-radius:12px; font-weight:bold;
+    margin-left:auto;
 }
 .badge-valid   { background:#14532d; color:#4ade80; border:1px solid #16a34a; }
 .badge-invalid { background:#450a0a; color:#f87171; border:1px solid #b91c1c; }
@@ -45,22 +54,13 @@ button.primary:disabled { background:#1e3a8a; cursor:not-allowed; }
 @media(max-width:700px){ .block-body { grid-template-columns:1fr; } }
 
 canvas { display:block; width:100%; border-radius:6px; border:1px solid #1e293b; }
-canvas-wrap { overflow:hidden; }
 
 pre.json-out {
     background:#020617; border:1px solid #1e293b; border-radius:6px;
-    padding:12px; color:#86efac; font-size:11px; white-space:pre-wrap;
-    max-height:320px; overflow-y:auto; margin:0;
+    padding:12px; font-size:11px; white-space:pre-wrap;
+    max-height:300px; overflow-y:auto; margin:0; color:#86efac;
 }
-pre.invalid { color:#f87171; }
-pre.valid   { color:#86efac; }
-
-.export-btn {
-    margin-top:10px; padding:8px 18px; background:#16a34a; color:#fff;
-    border:none; border-radius:5px; cursor:pointer; font-size:13px; font-weight:bold; width:100%;
-}
-.export-btn:hover { background:#15803d; }
-.export-btn:disabled { background:#14532d; cursor:not-allowed; opacity:0.6; }
+pre.json-out.invalid { color:#f87171; }
 
 .spinner {
     display:inline-block; width:12px; height:12px;
@@ -81,48 +81,57 @@ pre.valid   { color:#86efac; }
     </div>
 </div>
 
-<div class="upload-row">
+<div class="controls">
     <input type="file" id="chartFiles" accept="image/*" multiple>
-    <button class="primary" id="uploadBtn" onclick="uploadCharts()">🚀 Analyser tous</button>
+    <button class="btn-primary" id="uploadBtn" onclick="processCharts()">🚀 Uploader et traiter</button>
+    <button class="btn-export" id="exportAll" disabled onclick="exportFusion()">⬇ Exporter JSON Fusionné</button>
 </div>
 
 <div id="graphsContainer"></div>
 
 <script>
-async function uploadCharts() {
+let allResults = [];
+
+async function processCharts() {
     const files = document.getElementById('chartFiles').files;
     const container = document.getElementById('graphsContainer');
     const btn = document.getElementById('uploadBtn');
+    const exportAllBtn = document.getElementById('exportAll');
+
     container.innerHTML = '';
+    allResults = [];
+    exportAllBtn.disabled = true;
 
     if (!files.length) { alert("Sélectionnez au moins un fichier."); return; }
 
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Analyse en cours…';
+    btn.innerHTML = '<span class="spinner"></span>Traitement en cours…';
 
     for (const file of files) {
-        const block  = document.createElement('div'); block.className = 'graph-block';
-        const title  = document.createElement('h2');
-        const badge  = document.createElement('span'); badge.className = 'badge badge-loading'; badge.textContent = '⏳ En cours';
-        title.appendChild(document.createTextNode(file.name + ' ')); title.appendChild(badge);
+        // Build block
+        const block = document.createElement('div'); block.className = 'graph-block';
+        const header = document.createElement('div'); header.className = 'block-header';
+        const h2 = document.createElement('h2'); h2.textContent = file.name;
+        const badge = document.createElement('span'); badge.className = 'badge badge-loading'; badge.textContent = '⏳ En cours';
+        header.appendChild(h2); header.appendChild(badge);
 
-        const body   = document.createElement('div'); body.className = 'block-body';
-        const canvasWrap = document.createElement('div');
-        const cvs    = document.createElement('canvas');
+        const body = document.createElement('div'); body.className = 'block-body';
+        const cvs = document.createElement('canvas');
         const rightCol = document.createElement('div');
-        const pre    = document.createElement('pre'); pre.className = 'json-out'; pre.textContent = 'Lecture en cours…';
-        const exportBtn = document.createElement('button'); exportBtn.textContent = '⬇ Exporter JSON';
-        exportBtn.className = 'export-btn'; exportBtn.disabled = true;
+        const pre = document.createElement('pre'); pre.className = 'json-out'; pre.textContent = 'Lecture en cours…';
+        const exportBtn = document.createElement('button');
+        exportBtn.textContent = '⬇ Exporter JSON individuel';
+        exportBtn.className = 'btn-export-single'; exportBtn.disabled = true;
 
-        canvasWrap.appendChild(cvs);
         rightCol.appendChild(pre); rightCol.appendChild(exportBtn);
-        body.appendChild(canvasWrap); body.appendChild(rightCol);
-        block.appendChild(title); block.appendChild(body);
+        body.appendChild(cvs); body.appendChild(rightCol);
+        block.appendChild(header); block.appendChild(body);
         container.appendChild(block);
 
+        // Draw image on canvas
         const ctx = cvs.getContext('2d');
         const img = new Image(); img.src = URL.createObjectURL(file);
-        await new Promise(r => img.onload = r);
+        await new Promise(resolve => img.onload = resolve);
         cvs.width = img.width; cvs.height = img.height;
         ctx.drawImage(img, 0, 0);
 
@@ -132,9 +141,9 @@ async function uploadCharts() {
             const data = await response.json();
 
             badge.textContent = data.setup_valid ? '✅ VALIDE' : '❌ REJETÉ';
-            badge.className   = 'badge ' + (data.setup_valid ? 'badge-valid' : 'badge-invalid');
-            pre.textContent   = JSON.stringify(data, null, 2);
-            pre.className     = 'json-out ' + (data.setup_valid ? 'valid' : 'invalid');
+            badge.className = 'badge ' + (data.setup_valid ? 'badge-valid' : 'badge-invalid');
+            pre.textContent = JSON.stringify(data, null, 2);
+            pre.className = 'json-out' + (data.setup_valid ? '' : ' invalid');
             exportBtn.disabled = false;
 
             exportBtn.onclick = () => {
@@ -144,93 +153,98 @@ async function uploadCharts() {
                 a.click();
             };
 
-            drawOverlay(ctx, cvs, data);
+            allResults.push(data);
+
+            // ---- Draw overlays on canvas ----
+            const paddingTop = 30, paddingBottom = 30;
+            const vpLevels = data.justification?.volume_profile || {};
+            const allPrices = [
+                ...(data.entry_zone || []),
+                data.stop_loss,
+                ...(data.take_profit || []),
+                vpLevels.VAL, vpLevels.POC, vpLevels.VAH,
+            ].filter(v => typeof v === 'number' && isFinite(v));
+
+            if (allPrices.length >= 2) {
+                const priceMin = Math.min(...allPrices);
+                const priceMax = Math.max(...allPrices);
+                const priceRange = priceMax - priceMin || 1;
+                const mapY = val => paddingTop + (priceMax - val) / priceRange * (cvs.height - paddingTop - paddingBottom);
+
+                // Entry / SL / TP
+                const keyLevels = {
+                    Entry: data.entry_zone || [],
+                    StopLoss: data.stop_loss != null ? [data.stop_loss] : [],
+                    TakeProfit: data.take_profit || [],
+                };
+                const drawColor = { Entry: 'cyan', StopLoss: '#f87171', TakeProfit: '#4ade80' };
+
+                for (const [key, vals] of Object.entries(keyLevels)) {
+                    for (const val of vals) {
+                        if (typeof val !== 'number') continue;
+                        const y = mapY(val);
+                        ctx.strokeStyle = drawColor[key]; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                        ctx.setLineDash([]);
+                        ctx.fillStyle = drawColor[key]; ctx.font = 'bold 13px Arial';
+                        ctx.fillText(`${key}: ${val}`, cvs.width - 145, y - 4);
+                    }
+                }
+
+                // Volume Profile
+                const vpColors = { VAL: 'orange', POC: '#4ade80', VAH: '#f87171' };
+                for (const key of ['VAL', 'POC', 'VAH']) {
+                    if (typeof vpLevels[key] !== 'number') continue;
+                    const y = mapY(vpLevels[key]);
+                    ctx.strokeStyle = vpColors[key]; ctx.lineWidth = 2; ctx.setLineDash([]);
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                    ctx.fillStyle = vpColors[key]; ctx.font = 'bold 13px Arial';
+                    ctx.fillText(`${key}: ${vpLevels[key]}`, 10, y - 4);
+                }
+
+                // OB / OTE / OBPI zones (bottom 3 bands)
+                const zones = [
+                    { key: 'order_blocks', color: 'purple',  band: 0.03 },
+                    { key: 'fibonacci',    color: 'cyan',    band: 0.06 },
+                    { key: 'obpi',         color: 'yellow',  band: 0.09 },
+                ];
+                ctx.globalAlpha = 0.2;
+                for (const { key, color, band } of zones) {
+                    if (data.justification?.[key]) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(0, cvs.height - band * cvs.height, cvs.width, 0.03 * cvs.height);
+                    }
+                }
+                ctx.globalAlpha = 1;
+
+                // Justification labels (top overlay)
+                const justLines = Object.entries(data.justification || {})
+                    .filter(([, v]) => typeof v !== 'object')
+                    .map(([k, v]) => `${k}: ${String(v).substring(0, 70)}`);
+                if (justLines.length) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+                    ctx.fillRect(0, 0, cvs.width, justLines.length * 17 + 8);
+                    ctx.fillStyle = '#e2e8f0'; ctx.font = '12px Arial';
+                    justLines.forEach((line, i) => ctx.fillText(line, 8, 16 + i * 17));
+                }
+            }
 
         } catch (err) {
             console.error(err);
             badge.textContent = '❌ Erreur'; badge.className = 'badge badge-invalid';
-            pre.textContent = 'Erreur lors de l\'upload ou de l\'analyse.';
-            pre.className = 'json-out invalid';
+            pre.textContent = 'Erreur lors du traitement.'; pre.className = 'json-out invalid';
         }
     }
 
     btn.disabled = false;
-    btn.innerHTML = '🚀 Analyser tous';
+    btn.innerHTML = '🚀 Uploader et traiter';
+    if (allResults.length) exportAllBtn.disabled = false;
 }
 
-function safeMax(...vals) {
-    const nums = vals.flat().filter(v => typeof v === 'number' && isFinite(v));
-    return nums.length ? Math.max(...nums) : 1;
-}
-
-function drawLine(ctx, y, color, label, xAlign = 'left') {
-    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ctx.canvas.width, y); ctx.stroke();
-    ctx.fillStyle = color; ctx.font = 'bold 14px Arial';
-    const x = xAlign === 'right' ? ctx.canvas.width - 150 : 10;
-    ctx.fillText(label, x, y - 5);
-}
-
-function drawOverlay(ctx, cvs, data) {
-    const vp = data.justification?.volume_profile || {};
-    const vpVals = [vp.VAL, vp.POC, vp.VAH].filter(v => typeof v === 'number');
-    const entryVals = (data.entry_zone || []).filter(Boolean);
-    const slVals    = data.stop_loss != null ? [data.stop_loss] : [];
-    const tpVals    = (data.take_profit || []).filter(Boolean);
-    const allNums   = [...vpVals, ...entryVals, ...slVals, ...tpVals];
-    const maxVal    = safeMax(allNums);
-    if (!maxVal) return;
-
-    const H = cvs.height;
-    const scaleY = v => H - (v / maxVal * H);
-
-    // Volume Profile lines
-    const vpColors = { VAL: 'orange', POC: '#4ade80', VAH: '#f87171' };
-    for (const [key, val] of Object.entries(vp)) {
-        if (typeof val !== 'number') continue;
-        drawLine(ctx, scaleY(val), vpColors[key] || 'white', `${key}: ${val}`);
-    }
-
-    // Entry / SL / TP
-    const levelDefs = [
-        { label: 'Entry', vals: entryVals, color: 'cyan' },
-        { label: 'StopLoss', vals: slVals, color: '#f87171' },
-        { label: 'TakeProfit', vals: tpVals, color: '#4ade80' },
-    ];
-    for (const { label, vals, color } of levelDefs) {
-        for (const val of vals) {
-            if (typeof val !== 'number') continue;
-            drawLine(ctx, scaleY(val), color, `${label}: ${val}`, 'right');
-        }
-    }
-
-    // Zone overlays
-    const zoneH = 0.03 * H;
-    ctx.globalAlpha = 0.2;
-    const zones = [
-        { key: 'order_blocks', color: 'purple',  offset: 0.03 },
-        { key: 'fibonacci',    color: 'cyan',    offset: 0.06 },
-        { key: 'obpi',         color: 'yellow',  offset: 0.09 },
-    ];
-    for (const { key, color, offset } of zones) {
-        if (data.justification?.[key]) {
-            ctx.fillStyle = color;
-            ctx.fillRect(0, H - offset * H, cvs.width, zoneH);
-        }
-    }
-    ctx.globalAlpha = 1;
-
-    // Justification labels
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, 0, cvs.width, Object.keys(data.justification || {}).length * 18 + 10);
-    ctx.fillStyle = '#e2e8f0'; ctx.font = '13px Arial';
-    let yText = 18;
-    for (const [k, v] of Object.entries(data.justification || {})) {
-        if (typeof v === 'object') continue;
-        ctx.fillText(`${k}: ${String(v).substring(0, 80)}`, 8, yText);
-        yText += 18;
-    }
+function exportFusion() {
+    const blob = new Blob([JSON.stringify(allResults, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'fusion_decisions.json'; a.click();
 }
 </script>
 </body>

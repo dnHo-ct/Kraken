@@ -1,26 +1,26 @@
 {
   "timeframes_count": 1,
   "HTF": {
-    "fichier": "5dcccc9747b7f33b520a3f7e6dac3419",
+    "fichier": "e0ae227b7701a4c808c390b8e786d20d",
     "bias": "bullish",
     "volume_profile": {
-      "VAL": 1,
-      "POC": 2870,
-      "VAH": 2990
+      "VAL": 4,
+      "POC": 2914,
+      "VAH": 2914
     },
     "order_blocks": [
       {
-        "niveau": 2990,
+        "niveau": 6,
         "importance": "fort",
         "source": "HTF"
       },
       {
-        "niveau": 2960,
+        "niveau": 4,
         "importance": "fort",
         "source": "HTF"
       },
       {
-        "niveau": 2950,
+        "niveau": 2914,
         "importance": "fort",
         "source": "HTF"
       }
@@ -41,17 +41,17 @@
   "global_bias": "bullish",
   "order_blocks_hierarchises": [
     {
-      "niveau": 2990,
+      "niveau": 6,
       "importance": "fort",
       "source": "HTF"
     },
     {
-      "niveau": 2960,
+      "niveau": 4,
       "importance": "fort",
       "source": "HTF"
     },
     {
-      "niveau": 2950,
+      "niveau": 2914,
       "importance": "fort",
       "source": "HTF"
     }
