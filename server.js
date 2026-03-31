@@ -38,6 +38,28 @@ function readJSON(filePath) {
     }
 }
 
+// --- Phase 0 : lecture avancée d'un graphique unique ---
+app.post("/upload-graph", upload.single("chart"), async (req, res) => {
+    if (!req.file) {
+        return res.json({ valid: false, errors: ["Aucun fichier reçu."], levels: {}, fibo: {} });
+    }
+
+    const inputPath = req.file.path;
+    const outputPath = `output/phase0_${Date.now()}.json`;
+
+    try {
+        await runPython("phase0_reader.py", [inputPath, outputPath]);
+        const result = readJSON(outputPath) || { valid: false, errors: ["Erreur de lecture."], levels: {}, fibo: {} };
+        try { fs.unlinkSync(inputPath); } catch (e) {}
+        try { fs.unlinkSync(outputPath); } catch (e) {}
+        res.json(result);
+    } catch (err) {
+        console.error("Erreur Phase 0 :", err);
+        try { fs.unlinkSync(inputPath); } catch (e) {}
+        res.status(500).json({ valid: false, errors: ["Erreur serveur."], levels: {}, fibo: {} });
+    }
+});
+
 app.post("/upload-charts", upload.array("charts"), async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.json({ message: "Aucun fichier reçu." });

@@ -1,0 +1,132 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Phase 0 - Lecture graphique avancée</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+    h1 { color: #333; }
+    .container { max-width: 900px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+    input[type=file] { margin-bottom: 10px; }
+    button { padding: 10px 20px; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 5px; margin-bottom: 15px; }
+    pre { background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap;}
+    .valid { color: green; }
+    .invalid { color: red; }
+    canvas { display: block; margin: 20px auto; border: 1px solid #ccc; max-width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Phase 0 - Lecture graphique avancée</h1>
+    <input type="file" id="chartFile" accept="image/*">
+    <button onclick="uploadChart()">Uploader et lire</button>
+    
+    <h2>Résultat JSON :</h2>
+    <pre id="result">Aucun graphique uploadé.</pre>
+    
+    <h2>Visualisation graphique :</h2>
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    async function uploadChart() {
+      const fileInput = document.getElementById('chartFile');
+      const resultEl = document.getElementById('result');
+
+      if (!fileInput.files.length) {
+        alert("Sélectionnez un fichier d'abord.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('chart', fileInput.files[0]);
+
+      resultEl.textContent = "Lecture en cours...";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const img = new Image();
+      img.src = URL.createObjectURL(fileInput.files[0]);
+      img.onload = async () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        try {
+          const response = await fetch('/upload-graph', { method: 'POST', body: formData });
+          const data = await response.json();
+
+          // JSON affiché
+          let displayText = `Valid: ${data.valid ? "✅" : "❌"}\n\n`;
+          if (data.errors && data.errors.length > 0) displayText += "Erreurs:\n" + data.errors.map(e => `- ${e}`).join("\n") + "\n\n";
+          displayText += "Niveaux détectés:\n";
+          for (const [k,v] of Object.entries(data.levels)) displayText += `${k}: ${v}\n`;
+          if (data.fibo && Object.keys(data.fibo).length > 0) {
+            displayText += "\nFibo détectés:\n";
+            for (const [perc, val] of Object.entries(data.fibo)) displayText += `${perc}% → ${val}\n`;
+          }
+          resultEl.textContent = displayText;
+          resultEl.className = data.valid ? "valid" : "invalid";
+
+          // ---- Tracer niveaux VAL/POC/VAH ----
+          const levels = data.levels;
+          const colors = {VAL:"orange", POC:"green", VAH:"red"};
+          for (const key of ["VAL","POC","VAH"]) {
+            if (levels[key]) {
+              const y = canvas.height - (levels[key]/Math.max(...Object.values(levels)) * canvas.height);
+              ctx.strokeStyle = colors[key];
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(canvas.width, y);
+              ctx.stroke();
+              ctx.fillStyle = colors[key];
+              ctx.font = "16px Arial";
+              ctx.fillText(`${key}: ${levels[key]}`, 10, y - 5);
+            }
+          }
+
+          // ---- Tracer Fibonacci ----
+          if (data.fibo) {
+            ctx.strokeStyle = "blue";
+            ctx.lineWidth = 1;
+            for (const [perc, val] of Object.entries(data.fibo)) {
+              const y = canvas.height - (val / Math.max(...Object.values(levels)) * canvas.height);
+              ctx.setLineDash([5,5]);
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(canvas.width, y);
+              ctx.stroke();
+              ctx.fillStyle = "blue";
+              ctx.fillText(`Fibo ${perc}%: ${val}`, canvas.width-120, y - 5);
+            }
+            ctx.setLineDash([]);
+          }
+
+          // ---- Tracer zones OB / OTE / OBPI simulées ----
+          const obZoneHeight = 0.03 * canvas.height; // 3% hauteur zone
+          ctx.globalAlpha = 0.3;
+          // OB en violet
+          ctx.fillStyle = "purple";
+          ctx.fillRect(0, canvas.height - levels.VAH*canvas.height/Math.max(...Object.values(levels)), canvas.width, obZoneHeight);
+          // OTE en cyan
+          ctx.fillStyle = "cyan";
+          ctx.fillRect(0, canvas.height - levels.POC*canvas.height/Math.max(...Object.values(levels)), canvas.width, obZoneHeight);
+          // OBPI en jaune
+          ctx.fillStyle = "yellow";
+          ctx.fillRect(0, canvas.height - levels.VAL*canvas.height/Math.max(...Object.values(levels)), canvas.width, obZoneHeight);
+          ctx.globalAlpha = 1;
+
+        } catch (err) {
+          console.error(err);
+          resultEl.textContent = "Erreur lors de l'upload ou de la lecture du graphique.";
+          resultEl.className = "invalid";
+        }
+      }
+    }
+  </script>
+</body>
+</html>

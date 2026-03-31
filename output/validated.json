@@ -1,0 +1,161 @@
+[
+  {
+    "fichier": "46c42ab4b2e0c59f607dc0f3587856e5",
+    "prix_detectes": [
+      3180,
+      3160,
+      3140,
+      3120,
+      3100,
+      3080,
+      3060,
+      2913,
+      25,
+      24
+    ],
+    "order_blocks_detectes": [
+      {
+        "niveau": 3180,
+        "importance": "fort"
+      },
+      {
+        "niveau": 3160,
+        "importance": "fort"
+      },
+      {
+        "niveau": 3140,
+        "importance": "fort"
+      }
+    ],
+    "zones_fibo": [
+      {
+        "niveau": 3180,
+        "OTE_min": 61.8,
+        "OTE_max": 79
+      },
+      {
+        "niveau": 3160,
+        "OTE_min": 61.8,
+        "OTE_max": 79
+      },
+      {
+        "niveau": 3140,
+        "OTE_min": 61.8,
+        "OTE_max": 79
+      }
+    ],
+    "volume_profile": {
+      "VAL": 24,
+      "POC": 3080,
+      "VAH": 3180
+    },
+    "CVD": {
+      "delta": 1500,
+      "pression": "achat dominant"
+    },
+    "OBPI": {
+      "niveau_algo": "entree potentielle sur 61.8%-79%"
+    },
+    "micro_structure": "Engulfing haussier",
+    "synthese": {
+      "verdict": "Achat",
+      "stop_loss": -76,
+      "take_profit": [
+        3280
+      ]
+    },
+    "valid": true,
+    "errors": []
+  },
+  {
+    "fichier": "bddbb81e8a61982e53199d1c7bc75aa7",
+    "prix_detectes": [
+      6,
+      4,
+      2914,
+      17,
+      12
+    ],
+    "order_blocks_detectes": [
+      {
+        "niveau": 6,
+        "importance": "fort"
+      },
+      {
+        "niveau": 4,
+        "importance": "fort"
+      },
+      {
+        "niveau": 2914,
+        "importance": "fort"
+      }
+    ],
+    "zones_fibo": [
+      {
+        "niveau": 6,
+        "OTE_min": 61.8,
+        "OTE_max": 79
+      },
+      {
+        "niveau": 4,
+        "OTE_min": 61.8,
+        "OTE_max": 79
+      },
+      {
+        "niveau": 2914,
+        "OTE_min": 61.8,
+        "OTE_max": 79
+      }
+    ],
+    "volume_profile": {
+      "VAL": 4,
+      "POC": 2914,
+      "VAH": 2914
+    },
+    "CVD": {
+      "delta": 1500,
+      "pression": "achat dominant"
+    },
+    "OBPI": {
+      "niveau_algo": "entree potentielle sur 61.8%-79%"
+    },
+    "micro_structure": "Engulfing haussier",
+    "synthese": {
+      "verdict": "Achat",
+      "stop_loss": -96,
+      "take_profit": [
+        3014
+      ]
+    },
+    "valid": true,
+    "errors": []
+  },
+  {
+    "fichier": "b15136c14622cb92ad4762685477ff7b",
+    "prix_detectes": [],
+    "order_blocks_detectes": [],
+    "zones_fibo": [],
+    "volume_profile": {
+      "VAL": null,
+      "POC": null,
+      "VAH": null
+    },
+    "CVD": {
+      "delta": 1500,
+      "pression": "achat dominant"
+    },
+    "OBPI": {
+      "niveau_algo": "entree potentielle sur 61.8%-79%"
+    },
+    "micro_structure": "Engulfing haussier",
+    "synthese": {
+      "verdict": "Achat",
+      "stop_loss": null,
+      "take_profit": null
+    },
+    "valid": false,
+    "errors": [
+      "Moins de 3 prix détectés (0 trouvé(s))"
+    ]
+  }
+]
