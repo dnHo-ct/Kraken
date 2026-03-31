@@ -14,47 +14,106 @@ fs.mkdirSync("public", { recursive: true });
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.post("/upload-charts", upload.array("charts"), (req, res) => {
+function runPython(script, args) {
+    return new Promise((resolve, reject) => {
+        const py = spawn("python3", [script, ...args]);
+        let stdout = "";
+        let stderr = "";
+        py.stdout.on("data", d => { stdout += d.toString(); });
+        py.stderr.on("data", d => { stderr += d.toString(); });
+        py.on("close", code => {
+            if (stdout) console.log(`[${script}]`, stdout.trim());
+            if (stderr) console.error(`[${script} ERR]`, stderr.trim());
+            resolve({ code, stdout, stderr });
+        });
+        py.on("error", reject);
+    });
+}
+
+function readJSON(filePath) {
+    try {
+        return JSON.parse(fs.readFileSync(filePath, "utf8"));
+    } catch (e) {
+        return null;
+    }
+}
+
+app.post("/upload-charts", upload.array("charts"), async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.json({ message: "Aucun fichier reçu." });
     }
 
     console.log("Graphiques reçus :", req.files.map(f => f.originalname));
 
-    const files = req.files.map(f => f.path);
+    const filePaths = req.files.map(f => f.path);
 
-    const py = spawn("python3", ["moteur_sentinel.py", ...files]);
+    try {
+        // --- Phase OCR : moteur_sentinel.py ---
+        await runPython("moteur_sentinel.py", filePaths);
+        const rawResults = readJSON("output/global.json") || [];
 
-    py.stdout.on("data", data => console.log(data.toString()));
-    py.stderr.on("data", err => console.error(err.toString()));
+        // --- Phase A : validation.py ---
+        fs.writeFileSync("output/global.json", JSON.stringify(rawResults, null, 2));
+        await runPython("validation.py", ["output/global.json"]);
+        const validated = readJSON("output/validated.json") || [];
 
-    py.on("close", code => {
-        let globalData = null;
-        if (fs.existsSync("output/global.json")) {
-            try {
-                globalData = JSON.parse(fs.readFileSync("output/global.json", "utf8"));
-            } catch (e) {
-                console.error("Erreur lecture global.json:", e);
-            }
+        const validCount = validated.filter(g => g.valid).length;
+        if (validCount === 0) {
+            return res.json({
+                message: "Aucun graphique valide après validation.",
+                phase: "A",
+                errors: validated.map(g => ({ fichier: g.fichier, errors: g.errors })),
+                decision: null,
+            });
         }
 
-        files.forEach(f => {
-            try { fs.unlinkSync(f); } catch (e) {}
-        });
+        // --- Phase B : fusion.py ---
+        await runPython("fusion.py", ["output/validated.json"]);
+        const fusion = readJSON("output/fusion.json") || {};
+
+        if (fusion.rejected) {
+            return res.json({
+                message: `Setup rejeté — score confluence : ${fusion.confluence_score}/100`,
+                phase: "B",
+                fusion,
+                decision: null,
+            });
+        }
+
+        // --- Phase C : decision.py ---
+        await runPython("decision.py", ["output/fusion.json"]);
+        const decision = readJSON("output/decision_ready_for_gpt.json") || {};
+
+        filePaths.forEach(f => { try { fs.unlinkSync(f); } catch (e) {} });
 
         res.json({
-            message: `${req.files.length} graphique(s) analysé(s) avec succès.`,
-            data: globalData
+            message: `${req.files.length} graphique(s) analysé(s) — ${validCount} valide(s). Score : ${fusion.confluence_score}/100.`,
+            phase: "C",
+            validated_count: validCount,
+            confluence_score: fusion.confluence_score,
+            decision,
         });
-    });
+
+    } catch (err) {
+        console.error("Erreur pipeline SENTINEL :", err);
+        filePaths.forEach(f => { try { fs.unlinkSync(f); } catch (e) {} });
+        res.status(500).json({ message: "Erreur interne du moteur SENTINEL.", error: err.message });
+    }
 });
 
-app.get("/results/global", (req, res) => {
-    if (fs.existsSync("output/global.json")) {
-        res.sendFile(path.join(__dirname, "output/global.json"));
-    } else {
-        res.json([]);
-    }
+app.get("/results/decision", (req, res) => {
+    const data = readJSON("output/decision_ready_for_gpt.json");
+    res.json(data || {});
+});
+
+app.get("/results/fusion", (req, res) => {
+    const data = readJSON("output/fusion.json");
+    res.json(data || {});
+});
+
+app.get("/results/validated", (req, res) => {
+    const data = readJSON("output/validated.json");
+    res.json(data || []);
 });
 
 const PORT = 5000;
