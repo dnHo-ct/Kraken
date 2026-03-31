@@ -263,6 +263,66 @@ async function sendCharts() {
     status.innerText = "Erreur lors de l’envoi.";
     console.error(error);
   }
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>SENTINEL V2 – Analyse Complète</title>
+</head>
+<body>
+  <h1>SENTINEL V2 – Analyse Complète</h1>
+
+  <section>
+    <h3>Importer vos graphiques</h3>
+    <input type="file" id="chartUpload" accept="image/*" multiple />
+    <br><br>
+    <button onclick="sendCharts()">Envoyer et analyser</button>
+    <p id="uploadStatus"></p>
+  </section>
+
+  <section>
+    <h3>Résultats complets</h3>
+    <pre id="analysisResults"></pre>
+  </section>
+
+<script>
+async function sendCharts() {
+  const input = document.getElementById("chartUpload");
+  const status = document.getElementById("uploadStatus");
+  const resultsBox = document.getElementById("analysisResults");
+
+  if (!input.files.length) {
+    status.innerText = "Aucune image sélectionnée.";
+    return;
+  }
+
+  const formData = new FormData();
+  for (let i = 0; i < input.files.length; i++) {
+    formData.append("charts", input.files[i]);
+  }
+
+  status.innerText = "Analyse en cours...";
+  resultsBox.innerText = "";
+
+  try {
+    const response = await fetch("/upload-charts", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+    status.innerText = result.message;
+
+    // Affichage complet des données + verdict + SL/TP
+    resultsBox.innerText = JSON.stringify(result.data, null, 2);
+  } catch (error) {
+    status.innerText = "Erreur lors de l’analyse.";
+    console.error(error);
+  }
+}
+</script>
+</body>
+</html>
 </body> 
 </html>
 </body>
