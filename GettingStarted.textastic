@@ -215,7 +215,56 @@ Fichiers joints : ${document.getElementById("files").value}
         "\n\n⚠️ Connexion API OpenAI à ajouter (étape suivante).";
 }
 </script>
+<!-- === UPLOAD GRAPHIQUES === -->
+<section style="margin-top:20px;">
+  <h3>Importer des graphiques</h3>
 
+  <input 
+    type="file" 
+    id="chartUpload" 
+    accept="image/*" 
+    multiple 
+  />
+
+  <br><br>
+
+  <button onclick="sendCharts()">Envoyer les graphiques</button>
+
+  <p id="uploadStatus"></p>
+</section>
+
+<script>
+async function sendCharts() {
+  const input = document.getElementById("chartUpload");
+  const status = document.getElementById("uploadStatus");
+
+  if (!input.files.length) {
+    status.innerText = "Aucune image sélectionnée.";
+    return;
+  }
+
+  const formData = new FormData();
+
+  for (let i = 0; i < input.files.length; i++) {
+    formData.append("charts", input.files[i]);
+  }
+
+  status.innerText = "Envoi en cours...";
+
+  try {
+    const response = await fetch("/upload-charts", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+    status.innerText = result.message;
+  } catch (error) {
+    status.innerText = "Erreur lors de l’envoi.";
+    console.error(error);
+  }
+}
+</script>
 </body>
 </html>
 </body>
