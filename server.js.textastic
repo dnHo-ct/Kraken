@@ -1,147 +1,81 @@
+// server.js
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
-
 app.use(express.static("public"));
 
-/**
- * NORMALISATION DES PRIX
- */
 function normalizePrice(price) {
-  return parseFloat(parseFloat(price).toFixed(3));
+  return parseFloat(price.toFixed(3));
 }
 
-/**
- * SIMULATION ANALYSE GRAFHIQUE
- * Remplacer par ton OCR/IA réel
- */
+// --- Analyse graphique simulée (Vision AI + SMC) ---
 async function analyseGraphique(filePath, fileName) {
-  // Simulation avancée multi-outils / multi-structures
   return {
     file: fileName,
     currentPrice: 2.914,
-    orderBlocks: [
-      { level: 2.888, type: "Bullish_Neckline", htf: true },
-      { level: 2.900, type: "Bearish_OB", htf: false }
-    ],
-    fiboZone: { ote_min: 2.870, ote_max: 2.884 },
-    volumeProfile: { VAL: 2.830, POC: 2.906, VAH: 2.980 },
+    orderBlocks: [{ level: 2.888, type: "Bullish_Neckline" }],
+    imbalances: [{ min: 2.870, max: 2.884 }],
+    liquidityZones: [{ low: 2.830, high: 2.980 }],
+    rsi: { value: 35, divergence: true },
+    structure: "Engulfing Haussier",
+    smc: { BOS: true, CHoCH: false, liquiditySweep: true, imbalance: true },
     atr: 0.015,
-    cvd: { pression: "Achat dominant", delta: 1500 },
-    rsi: { value: 42, divergence: "bullish" },
-    microStructure: "Engulfing Haussier",
-    smc: { imbalances: true, liquiditySweep: true },
-    amd: { smartMoneyFlow: true },
-    obpi: true
+    cvd: { pression: "Achat dominant", delta: 1500 }
   };
 }
 
-/**
- * LOGIQUE DE DÉCISION KRAKEN
- */
 function calculDecision(aiData) {
   let bias = "NEUTRE";
-  if (
-    aiData.microStructure.includes("Haussier") &&
-    aiData.currentPrice > aiData.orderBlocks[0].level &&
-    aiData.rsi.divergence === "bullish"
-  ) {
+  if (aiData.structure.includes("Haussier") && aiData.currentPrice > aiData.orderBlocks[0].level) {
     bias = "BULLISH";
   }
 
-  // Stop Loss : anti-chasse avec ATR
-  let sl = normalizePrice(aiData.orderBlocks[0].level - aiData.atr * 1.5);
-
-  // Take Profit : fractionné selon VP
-  let tp1 = normalizePrice(aiData.volumeProfile.POC);
-  let tp2 = normalizePrice(aiData.volumeProfile.VAH);
-
-  // Validité du setup
-  let setupValid = true;
-  let errorLog = [];
-
-  if (bias === "BULLISH" && tp1 <= aiData.currentPrice) {
-    setupValid = false;
-    errorLog.push("TP1 inférieur au prix actuel - ajusté");
-    tp1 = normalizePrice(aiData.currentPrice + aiData.atr * 3);
-  }
-
+  const sl = normalizePrice(aiData.orderBlocks[0].level - aiData.atr * 1.5);
+  const tp1 = normalizePrice(aiData.liquidityZones[0].high);
+  const tp2 = normalizePrice(aiData.liquidityZones[0].high + aiData.atr * 3);
   const risk = Math.abs(aiData.currentPrice - sl);
   const reward = Math.abs(tp2 - aiData.currentPrice);
-  const rr = (reward / risk).toFixed(2);
+  const rr = parseFloat((reward / risk).toFixed(2));
 
-  if (rr > 20 || rr < 0.5) {
-    setupValid = false;
-    errorLog.push(`R/R suspect 1:${rr}`);
-  }
-
-  // Score global basé sur OB/Fibo/VP/CVD/Structure/OBPI
-  let score =
-    (setupValid ? 25 : 0) + // OB
-    20 + // Fibo
-    20 + // VP
-    15 + // CVD
-    10 + // Structure
-    (aiData.obpi ? 10 : 0); // OBPI
-  score = Math.min(score, 100);
+  const setupValid = bias !== "NEUTRE" && aiData.rsi.divergence && aiData.smc.BOS;
+  const errors = setupValid ? [] : ["Setup non conforme SMC/RSI"];
 
   return {
     bias,
     setup_valid: setupValid,
-    errors: errorLog,
-    entry_zone: [aiData.fiboZone.ote_min, aiData.fiboZone.ote_max],
+    errors,
+    entry_zone: [aiData.imbalances[0].min, aiData.imbalances[0].max],
     current_price: aiData.currentPrice,
     stop_loss: sl,
     take_profit: [tp1, tp2],
     risk_reward: `1:${rr}`,
-    confidence_score: score,
+    confidence_score: setupValid ? 100 : 50,
     justification: {
-      order_blocks: aiData.orderBlocks.map(ob => `${ob.type} @${ob.level}`),
-      fibo: `Zone OTE : [${aiData.fiboZone.ote_min}, ${aiData.fiboZone.ote_max}]`,
-      volume_profile: aiData.volumeProfile,
-      cvd: aiData.cvd.pression,
-      rsi_divergence: aiData.rsi.divergence,
-      micro_structure: aiData.microStructure,
+      structure: aiData.structure,
       smc: aiData.smc,
-      amd: aiData.amd,
-      obpi: aiData.obpi
+      rsi: aiData.rsi,
+      cvd: aiData.cvd
     }
   };
 }
 
-/**
- * ROUTE D'UPLOAD ET TRAITEMENT
- */
 app.post("/upload-charts", upload.array("charts"), async (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.json({ message: "Aucun fichier reçu." });
-  }
+  if (!req.files || req.files.length === 0) return res.json({ message: "Aucun fichier reçu." });
 
   const results = [];
-
   for (const file of req.files) {
     const filePath = path.join(__dirname, file.path);
     const aiData = await analyseGraphique(filePath, file.originalname);
-    const decision = calculDecision(aiData);
-
-    results.push(decision);
+    results.push(calculDecision(aiData));
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
 
-  res.json({
-    message: "Analyse Kraken terminée",
-    data: results
-  });
+  res.json({ message: "Analyse Kraken V2 terminée", data: results });
 });
 
-/**
- * LANCEMENT DU SERVEUR
- */
 const PORT = 5000;
-app.listen(PORT, () => {
-  console.log("🚀 Kraken V1 actif sur le port", PORT);
-});
+app.listen(PORT, () => console.log("🚀 Kraken V2 actif sur le port", PORT));
