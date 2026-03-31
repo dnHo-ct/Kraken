@@ -1,0 +1,24 @@
+{
+  "fichier": "93581c692667d8ef478e26ec7a07e7bf",
+  "prix_detectes": [],
+  "order_blocks_detectes": [],
+  "zones_fibo": [],
+  "volume_profile": {
+    "VAL": null,
+    "POC": null,
+    "VAH": null
+  },
+  "CVD": {
+    "delta": 1500,
+    "pression": "achat dominant"
+  },
+  "OBPI": {
+    "niveau_algo": "entree potentielle sur 61.8%-79%"
+  },
+  "micro_structure": "Engulfing haussier",
+  "synthese": {
+    "verdict": "Achat",
+    "stop_loss": null,
+    "take_profit": null
+  }
+}

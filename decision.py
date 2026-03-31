@@ -129,12 +129,14 @@ if __name__ == "__main__":
         print(json.dumps({"error": "Aucun fichier fourni"}))
         sys.exit(1)
 
+    output_path = sys.argv[2] if len(sys.argv) >= 3 else "output/decision_ready_for_gpt.json"
+
     with open(sys.argv[1], "r") as f:
         fusion = json.load(f)
 
     decision = build_decision(fusion)
 
-    with open("output/decision_ready_for_gpt.json", "w") as f:
+    with open(output_path, "w") as f:
         json.dump(decision, f, indent=2, ensure_ascii=False)
 
     print(f"Décision générée — bias : {decision['bias']}, score : {decision['confidence_score']}/100, setup_valid : {decision['setup_valid']}")

@@ -1,0 +1,110 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Phase A→C - Multi-graphique + Export JSON</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+.container { max-width: 1200px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+h1,h2 { color: #333; }
+input[type=file] { margin-bottom: 10px; }
+button { padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 15px; }
+canvas { display: block; margin: 20px auto; border: 1px solid #ccc; max-width: 100%; }
+pre { background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; max-height: 300px;}
+.graph-block { margin-bottom: 40px; }
+.export-btn { background: #28a745; margin-left: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Phase A→C - Multi-graphique + Export JSON</h1>
+  <input type="file" id="chartFiles" accept="image/*" multiple>
+  <button onclick="uploadCharts()">Uploader et lire tous</button>
+  <div id="graphsContainer"></div>
+</div>
+
+<script>
+async function uploadCharts() {
+  const files = document.getElementById('chartFiles').files;
+  const container = document.getElementById('graphsContainer');
+  container.innerHTML = '';
+
+  if (!files.length) { alert("Sélectionnez au moins un fichier."); return; }
+
+  for (const file of files) {
+    const block = document.createElement('div'); block.className='graph-block';
+    const title = document.createElement('h2'); title.textContent = file.name;
+    const canvas = document.createElement('canvas');
+    const pre = document.createElement('pre'); pre.textContent='Lecture en cours...';
+    const exportBtn = document.createElement('button'); exportBtn.textContent='Exporter JSON'; exportBtn.className='export-btn';
+    exportBtn.disabled = true;
+    block.appendChild(title); block.appendChild(canvas); block.appendChild(pre); block.appendChild(exportBtn);
+    container.appendChild(block);
+
+    const ctx = canvas.getContext('2d');
+    const img = new Image(); img.src = URL.createObjectURL(file);
+    await new Promise(resolve => img.onload = resolve);
+    canvas.width = img.width; canvas.height = img.height;
+    ctx.drawImage(img,0,0);
+
+    try {
+      const formData = new FormData(); formData.append('chart', file);
+      const response = await fetch('/upload-graph', { method:'POST', body:formData });
+      const data = await response.json();
+      pre.textContent = JSON.stringify(data,null,2);
+      pre.className = data.setup_valid?'valid':'invalid';
+      exportBtn.disabled = false;
+
+      exportBtn.onclick = () => {
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `${file.name.split('.')[0]}_decision.json`;
+        a.click();
+      };
+
+      // ---- Dessiner niveaux ----
+      const levels = data.justification.volume_profile || {};
+      const colors={VAL:"orange",POC:"green",VAH:"red"};
+      for(const key of ["VAL","POC","VAH"]){
+        if(levels[key]){
+          const y = canvas.height-(levels[key]/Math.max(...Object.values(levels))*canvas.height);
+          ctx.strokeStyle=colors[key]; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+          ctx.fillStyle=colors[key]; ctx.font="16px Arial"; ctx.fillText(`${key}: ${levels[key]}`,10,y-5);
+        }
+      }
+
+      // Entry/SL/TP
+      const keyLevels = {Entry:data.entry_zone, StopLoss:[data.stop_loss], TakeProfit:data.take_profit};
+      const drawColor={Entry:"cyan",StopLoss:"red",TakeProfit:"lime"};
+      for(const [key,vals] of Object.entries(keyLevels)){
+        vals.forEach(val=>{
+          const y=canvas.height-(val/Math.max(...[].concat(...Object.values(keyLevels)))*canvas.height);
+          ctx.strokeStyle=drawColor[key]; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+          ctx.fillStyle=drawColor[key]; ctx.font="16px Arial"; ctx.fillText(`${key}: ${val}`, canvas.width-140,y-5);
+        });
+      }
+
+      // OB/OTE/OBPI zones
+      const zoneColors={OB:"purple", OTE:"cyan", OBPI:"yellow"};
+      ctx.globalAlpha=0.2;
+      if(data.justification.order_blocks){ctx.fillStyle=zoneColors.OB; ctx.fillRect(0,canvas.height-0.03*canvas.height,canvas.width,0.03*canvas.height);}
+      if(data.justification.fibonacci){ctx.fillStyle=zoneColors.OTE; ctx.fillRect(0,canvas.height-0.06*canvas.height,canvas.width,0.03*canvas.height);}
+      if(data.justification.obpi){ctx.fillStyle=zoneColors.OBPI; ctx.fillRect(0,canvas.height-0.09*canvas.height,canvas.width,0.03*canvas.height);}
+      ctx.globalAlpha=1;
+
+      // Labels justifications
+      ctx.fillStyle="black"; ctx.font="14px Arial";
+      let yText=20;
+      for(const [k,v] of Object.entries(data.justification)){ctx.fillText(`${k}: ${v}`,10,yText); yText+=18;}
+
+    } catch(err){
+      console.error(err); pre.textContent="Erreur lors de l'upload ou lecture."; pre.className="invalid"; exportBtn.disabled=true;
+    }
+  }
+}
+</script>
+</body>
+</html>
