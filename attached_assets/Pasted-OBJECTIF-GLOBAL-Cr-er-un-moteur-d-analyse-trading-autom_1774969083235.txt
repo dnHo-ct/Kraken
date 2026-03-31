@@ -1,0 +1,140 @@
+OBJECTIF GLOBAL
+Créer un moteur d’analyse trading automatisé professionnel nommé SENTINEL,
+capable de :
+
+1) Vérifier et valider les données extraites depuis plusieurs graphiques (Phase A)
+2) Fusionner ces données en analyse multi-timeframe cohérente (Phase B)
+3) Produire une décision finale structurée prête à être envoyée à ChatGPT (Phase C),
+   sans hallucination, strictement conforme au prompt universel.
+
+Aucune simplification. Aucune suppression d’outils.
+Le système doit être robuste, traçable et déterministe avant toute IA générative.
+
+
+========================
+PHASE A — VALIDATION DES DONNÉES
+========================
+
+Créer un module Python `validation.py` qui :
+
+- Vérifie pour chaque graphique :
+  - présence des champs obligatoires :
+    - prix_detectes
+    - order_blocks_detectes
+    - zones_fibo
+    - volume_profile (VAL, VAH, POC)
+    - CVD
+    - OBPI
+    - micro_structure
+  - rejette le graphique si :
+    - moins de 3 prix détectés
+    - VAL >= VAH
+    - POC hors VAH / VAL
+- Ajoute un champ :
+  - `valid: true | false`
+  - `errors: []`
+
+Aucune analyse ne continue si `valid === false`.
+
+Sortie : JSON normalisé validé.
+
+
+========================
+PHASE B — FUSION MULTI-TIMEFRAME
+========================
+
+Créer un module Python `fusion.py` qui :
+
+- Prend une liste de graphiques validés
+- Identifie automatiquement :
+  - HTF (plus grand range de prix)
+  - LTF (plus petit range)
+- Applique les règles suivantes :
+
+1) La tendance HTF est prioritaire
+2) LTF ne peut proposer une entrée QUE dans le sens HTF
+3) Les Order Blocks sont hiérarchisés par :
+   - HTF > LTF
+4) Les zones Fibo ne sont valides que si :
+   - confluence OB + VP + Structure
+5) Le CVD doit confirmer la direction
+6) L’OBPI doit être situé dans la zone OTE
+
+Calculer un `confluence_score` sur 100 :
+- OB : 25
+- Fibo : 20
+- Volume Profile : 20
+- CVD : 15
+- Structure : 10
+- OBPI : 10
+
+Rejeter tout setup < 60/100.
+
+Sortie : UN SEUL JSON FUSIONNÉ.
+
+
+========================
+PHASE C — ANALYSE DÉCISIONNELLE (PRÊTE GPT)
+========================
+
+Créer un module Python `decision.py` qui :
+
+- Transforme le JSON fusionné en structure finale :
+
+{
+  "bias": "bullish | bearish | range",
+  "setup_valid": true | false,
+  "entry_zone": [],
+  "stop_loss": null,
+  "take_profit": [],
+  "invalidation": "",
+  "risk_reward": "",
+  "confidence_score": 0,
+  "justification": {
+    "order_blocks": "",
+    "fibonacci": "",
+    "volume_profile": "",
+    "cvd": "",
+    "structure": "",
+    "obpi": ""
+  }
+}
+
+- Cette sortie doit être STRICTEMENT déterministe
+- Aucune IA générative ici
+- Cette structure est la SEULE chose envoyée plus tard à ChatGPT
+
+
+========================
+INTÉGRATION SERVEUR
+========================
+
+Modifier `server.js` pour :
+
+1) Après upload :
+   - appeler moteur OCR
+   - appeler validation.py
+   - appeler fusion.py
+   - appeler decision.py
+2) Sauvegarder :
+   - results/graphique_X.json
+   - output/fusion.json
+   - output/decision_ready_for_gpt.json
+3) Retourner au frontend :
+   - decision_ready_for_gpt.json
+
+
+========================
+CONTRAINTES ABSOLUES
+========================
+
+- Aucun outil ne doit être supprimé
+- Aucun champ ne doit être inventé
+- Tout doit être traçable
+- Le moteur doit fonctionner SANS API PAYANTE
+- ChatGPT n’est utilisé QU’APRÈS la Phase C
+
+Créer tous les fichiers nécessaires automatiquement.
+Le projet doit être immédiatement exécutable.
+
+FIN DES INSTRUCTIONS.
