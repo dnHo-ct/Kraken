@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Site de Trading</title>
+    <!-- Lien vers Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .chart-section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Analyse de Marché</h1>
+        
+        <!-- Section pour les graphiques -->
+        <div class="chart-section">
+            <h2>Graphiques Multi-Timeframes</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Weekly (W1)</h4>
+                    <img src="URL_DE_TON_IMAGE_W1" class="img-fluid" alt="Graphique Weekly">
+                </div>
+                <div class="col-md-6">
+                    <h4>Daily (D1)</h4>
+                    <img src="URL_DE_TON_IMAGE_D1" class="img-fluid" alt="Graphique Daily">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>4H</h4>
+                    <img src="URL_DE_TON_IMAGE_4H" class="img-fluid" alt="Graphique 4H">
+                </div>
+                <div class="col-md-6">
+                    <h4>M15</h4>
+                    <img src="URL_DE_TON_IMAGE_M15" class="img-fluid" alt="Graphique M15">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section pour le formulaire -->
+        <div class="chart-section">
+            <h2>Formulaire d'Analyse</h2>
+            <form id="analysisForm">
+                <div class="form-group">
+                    <label for="asset">Actif</label>
+                    <input type="text" class="form-control" id="asset" placeholder="Nom de l'actif">
+                </div>
+                <div class="form-group">
+                    <label for="price">Prix actuel</label>
+                    <input type="text" class="form-control" id="price" placeholder="Prix actuel">
+                </div>
+                <!-- Ajoute d'autres champs si nécessaire -->
+                <button type="submit" class="btn btn-primary">Analyser</button>
+            </form>
+        </div>
+        
+        <!-- Section pour les notifications -->
+        <div class="chart-section">
+            <h2>Résultat</h2>
+            <div id="result" class="alert alert-info">
+                <!-- La décision sera affichée ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Lien vers jQuery et Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Ici, tu ajouteras le JavaScript pour envoyer les données vers ton backend ou ChatGPT et afficher la réponse.
+    </script>
+</body>
+</html>
