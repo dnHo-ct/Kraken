@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>SENTINEL V2 – Institutional Market Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0b0f1a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #38bdf8;
+        }
+        textarea, input, select, button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            background: #020617;
+            color: #e5e7eb;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #2563eb;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+        }
+        .output {
+            white-space: pre-wrap;
+            background: #020617;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>SENTINEL V2 – Audit Institutionnel</h1>
+
+<div class="section">
+    <h2>1️⃣ Mode d'analyse</h2>
+    <select id="analysisMode">
+        <option value="setup">Analyse d'un setup / actif précis</option>
+        <option value="scan">Scan global du marché</option>
+    </select>
+</div>
+
+<div class="section">
+    <h2>2️⃣ Données utilisateur</h2>
+
+    <input type="text" id="asset" placeholder="Actif et prix actuel (ex: EURUSD 1.0845)">
+    
+    <textarea id="obFibo" rows="4" placeholder="Données Order Block & Fibonacci"></textarea>
+
+    <textarea id="volumeProfile" rows="4" placeholder="Volume Profile (Global / W1 / D1 : VAL, VAH, POC)"></textarea>
+
+    <textarea id="indicators" rows="4" placeholder="Notes RSI / MACD / CVD"></textarea>
+
+    <textarea id="files" rows="3" placeholder="Fichiers joints (screenshots, TF, descriptions)"></textarea>
+</div>
+
+<button onclick="runAnalysis()">Lancer l'analyse SENTINEL</button>
+
+<div class="output" id="result"></div>
+
+<script>
+/* ================= PROMPT MAÎTRE IMMUTABLE ================= */
+
+const PROMPT_SENTINEL = `
+Initialisation du Protocole SENTINEL V2 - Audit Multi-Dimensionnel
+Agis en tant que SENTINEL, mon assistant de trading institutionnel et expert en ingénierie de flux. Je vais te fournir des données textuelles et des captures d'écran (Multi-Timeframes) concernant un actif. Tu vas analyser ce set-up en respectant strictement et dans l'ordre le protocole chronologique suivant. Ton ton sera direct, objectif, et purement orienté sur la mécanique institutionnelle (algorithmes, liquidité, volume).
+Étape 1 : Cartographie Macro et Liquidité (TF : W1/D1/H4)
+ * Identifie et valide la prise de liquidité majeure (ex: balayage d'un creux/sommet historique à une date précise).
+ * Confirme la présence du prix dans un Order Block (OB) de haut niveau et valide ses bornes (Premium/Discount de l'OB).
+Étape 2 : Ingénierie des Zones de Valeur (Volume Profile)
+ * Analyse la position du prix actuel (Current Price) par rapport aux 3 niveaux de Volume Profile fournis : Global, Weekly (W1), et Daily (D1).
+ * Détermine mathématiquement si le prix est en phase de décote (sous la VAL), de prime (au-dessus de la VAH) ou d'équilibre (sur le POC).
+Étape 3 : Momentum et Divergences (Oscillateurs)
+ * Évalue l'état directionnel du MACD (12, 26, 9) et les croisements sur les Timeframes supérieurs.
+ * Identifie toute divergence (Standard ou Cachée) sur le RSI (D1/H4) par rapport à l'action du prix (Higher Highs / Lower Lows).
+Étape 4 : Micro-Structure, Flux et Exécution (TF : M15/M5)
+ * Décode la pression du carnet via l'état du CVD et de l'OBPI (si fourni).
+ * Identifie la figure chartiste de retournement exact (ex: Étoile du matin, Engulfing).
+ * Valide le positionnement algorithmique de l'entrée sur la grille de retracement Fibonacci (Recherche stricte de la zone OTE : 61.8% à 79%).
+Étape 5 : Synthèse SENTINEL et Paramétrage du Risque (Verdict Final)
+ * Délivre ton verdict sur l'état du flux institutionnel (Achat/Vente/Neutre).
+ * Calcule un Stop Loss (SL) de précision absolue basé sur l'invalidation de la zone OTE (sous les 100% ou 79%) et la protection de l'OB.
+ * Définis les Take Profit (TP1, TP2) en te basant exclusivement sur les cibles d'aimantation du Volume Profile (VAL, VAH, POC).
+Données d'entrée pour le trade actuel :
+ * Actif et Prix actuel :
+ * Données OB et Fibo :
+ * Données Volume Profile (Global, W1, D1) :
+ * Notes RSI/MACD/CVD :
+ * Fichiers joints :
+Veuillez exécuter l'analyse.
+`;
+
+/* ================= LOGIQUE ================= */
+
+function runAnalysis() {
+    const mode = document.getElementById("analysisMode").value;
+
+    let userData = `
+Mode d'analyse : ${mode}
+
+Actif et Prix actuel : ${document.getElementById("asset").value}
+Données OB et Fibo : ${document.getElementById("obFibo").value}
+Données Volume Profile : ${document.getElementById("volumeProfile").value}
+Notes RSI/MACD/CVD : ${document.getElementById("indicators").value}
+Fichiers joints : ${document.getElementById("files").value}
+`;
+
+    const finalPrompt = PROMPT_SENTINEL + "\n" + userData;
+
+    document.getElementById("result").textContent =
+        "PROMPT ENVOYÉ À CHATGPT :\n\n" + finalPrompt +
+        "\n\n⚠️ Connexion API OpenAI à ajouter (étape suivante).";
+}
+</script>
+
+</body>
+</html>
