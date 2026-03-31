@@ -2,21 +2,21 @@
   "bias": "bullish",
   "setup_valid": true,
   "entry_zone": [
-    2950,
-    2964.75
+    4,
+    4.02
   ],
-  "stop_loss": 2944.1,
+  "stop_loss": 3.992,
   "take_profit": [
-    2870,
-    2990
+    2914,
+    2914
   ],
-  "invalidation": "Clôture sous le dernier OB HTF (2950)",
-  "risk_reward": "1:2.46",
+  "invalidation": "Clôture sous le dernier OB HTF (4)",
+  "risk_reward": "1:161666.11",
   "confidence_score": 100,
   "justification": {
-    "order_blocks": "3 OB détecté(s) — HTF prioritaire. Niveaux : [2950, 2960, 2990]",
-    "fibonacci": "Zone OTE ciblée entre 61.8% et 79% — entrée zone : [2950, 2964.7499999999995]",
-    "volume_profile": "VAL=1, POC=2870, VAH=2990 — TP alignés sur POC/VAH",
+    "order_blocks": "3 OB détecté(s) — HTF prioritaire. Niveaux : [4, 6, 2914]",
+    "fibonacci": "Zone OTE ciblée entre 61.8% et 79% — entrée zone : [4, 4.02]",
+    "volume_profile": "VAL=4, POC=2914, VAH=2914 — TP alignés sur POC/VAH",
     "cvd": "CVD confirme la direction bullish",
     "structure": "HTF micro-structure : Engulfing haussier / LTF micro-structure : N/A",
     "obpi": "OBPI positionné dans zone OTE — pression algorithmique détectée"

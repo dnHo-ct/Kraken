@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Batch Multi-Graph Safe Replit</title>
+<style>
+body { font-family: Arial; margin:20px; background:#f9f9f9; }
+.container { max-width:1200px; margin:auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+h1,h2 { color:#333; }
+input[type=file] { margin-bottom:10px; }
+button { padding:10px 20px; margin:5px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; }
+canvas { display:block; margin:20px auto; border:1px solid #ccc; max-width:100%; }
+pre { background:#f0f0f0; padding:10px; border-radius:5px; overflow-x:auto; max-height:300px; }
+.graph-block { margin-bottom:40px; }
+.export-btn { background:#28a745; margin-left:10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Batch Multi-Graph Safe Replit</h1>
+  <input type="file" id="chartFiles" accept="image/*" multiple>
+  <button onclick="processCharts()">Uploader et traiter</button>
+  <button id="exportAll" disabled>Exporter JSON Fusionné</button>
+  <div id="graphsContainer"></div>
+</div>
+
+<script>
+let allResults = [];
+
+async function processCharts(){
+  const files = document.getElementById('chartFiles').files;
+  const container = document.getElementById('graphsContainer');
+  container.innerHTML = '';
+  allResults = [];
+  document.getElementById('exportAll').disabled = true;
+  if(!files.length){ alert("Sélectionnez au moins un fichier."); return; }
+
+  for(const file of files){
+    const block = document.createElement('div'); block.className='graph-block';
+    const title = document.createElement('h2'); title.textContent = file.name;
+    const canvas = document.createElement('canvas');
+    const pre = document.createElement('pre'); pre.textContent = 'Lecture en cours...';
+    const exportBtn = document.createElement('button'); exportBtn.textContent='Exporter JSON'; exportBtn.className='export-btn';
+    exportBtn.disabled = true;
+    block.appendChild(title); block.appendChild(canvas); block.appendChild(pre); block.appendChild(exportBtn);
+    container.appendChild(block);
+
+    const ctx = canvas.getContext('2d');
+    const img = new Image(); img.src = URL.createObjectURL(file);
+    await new Promise(resolve=>img.onload=resolve);
+    canvas.width = img.width; canvas.height = img.height;
+    ctx.drawImage(img,0,0);
+
+    try{
+      const formData = new FormData(); formData.append('chart', file);
+      const response = await fetch('/upload-graph',{method:'POST',body:formData});
+      const data = await response.json();
+
+      pre.textContent = JSON.stringify(data,null,2);
+      exportBtn.disabled=false;
+
+      // Export JSON individuel
+      exportBtn.onclick = ()=>{
+        const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+        a.download=`${file.name.split('.')[0]}_decision.json`; a.click();
+      };
+
+      allResults.push(data); // Ajout au batch fusionné
+
+      // --- Dessin rapide des niveaux ---
+      const paddingTop=30, paddingBottom=30;
+      const allPrices = [...data.entry_zone,[data.stop_loss],...data.take_profit];
+      const vpLevels = data.justification.volume_profile || {};
+      if(vpLevels.VAL) allPrices.push(vpLevels.VAL);
+      if(vpLevels.POC) allPrices.push(vpLevels.POC);
+      if(vpLevels.VAH) allPrices.push(vpLevels.VAH);
+      const priceMin = Math.min(...allPrices), priceMax=Math.max(...allPrices), priceRange=priceMax-priceMin;
+      const mapY = val => paddingTop + (priceMax-val)/priceRange*(canvas.height-paddingTop-paddingBottom);
+
+      const keyLevels = {Entry:data.entry_zone, StopLoss:[data.stop_loss], TakeProfit:data.take_profit};
+      const drawColor = {Entry:"cyan",StopLoss:"red",TakeProfit:"lime"};
+      for(const [key,vals] of Object.entries(keyLevels)){
+        vals.forEach(val=>{
+          const y=mapY(val);
+          ctx.strokeStyle=drawColor[key]; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+          ctx.fillStyle=drawColor[key]; ctx.font="16px Arial"; ctx.fillText(`${key}: ${val}`, canvas.width-140,y-5);
+        });
+      }
+
+      const colors={VAL:"orange",POC:"green",VAH:"red"};
+      for(const key of ["VAL","POC","VAH"]){
+        if(vpLevels[key]){
+          const y=mapY(vpLevels[key]);
+          ctx.strokeStyle=colors[key]; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+          ctx.fillStyle=colors[key]; ctx.font="16px Arial"; ctx.fillText(`${key}: ${vpLevels[key]}`,10,y-5);
+        }
+      }
+
+      await new Promise(r=>setTimeout(r,50));
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0);
+
+    } catch(err){
+      console.error(err); pre.textContent="Erreur lors du traitement."; exportBtn.disabled=true;
+    }
+  }
+
+  if(allResults.length) document.getElementById('exportAll').disabled = false;
+}
+
+// Export JSON fusionné
+document.getElementById('exportAll').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(allResults,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download='fusion_decisions.json'; a.click();
+};
+</script>
+</body>
+</html>
